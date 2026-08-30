@@ -4,6 +4,7 @@
 
 @section('content')
 <h2>Tickets</h2>
+
 <form method="GET" action="{{ route('tickets.index') }}">
     <div>
         <label for="search">Search</label>
@@ -25,7 +26,7 @@
                 value="{{ $status->value }}"
                 @selected(request('status')===$status->value)
                 >
-                {{ $status->value }}
+                {{ str_replace('_', ' ', ucfirst($status->value)) }}
             </option>
             @endforeach
         </select>
@@ -41,7 +42,7 @@
                 value="{{ $priority->value }}"
                 @selected(request('priority')===$priority->value)
                 >
-                {{ $priority->value }}
+                {{ ucfirst($priority->value) }}
             </option>
             @endforeach
         </select>
@@ -52,6 +53,7 @@
         <label for="assignee">Assignee</label>
         <select id="assignee" name="assignee">
             <option value="">All assignees</option>
+
             <option
                 value="unassigned"
                 @selected(request('assignee')==='unassigned' )>
@@ -74,10 +76,11 @@
 
     <a href="{{ route('tickets.index') }}">Reset</a>
 </form>
+
 @if ($tickets->isEmpty())
 <p>No tickets found.</p>
 @else
-<table border="1" cellpadding="8" cellspacing="0">
+<table>
     <thead>
         <tr>
             <th>Title</th>
@@ -88,6 +91,7 @@
             <th>Created at</th>
         </tr>
     </thead>
+
     <tbody>
         @foreach ($tickets as $ticket)
         <tr>
@@ -96,11 +100,30 @@
                     {{ $ticket->title }}
                 </a>
             </td>
-            <td>{{ $ticket->status->value }}</td>
-            <td>{{ $ticket->priority->value }}</td>
-            <td>{{ $ticket->creator->name }}</td>
-            <td>{{ $ticket->assignee?->name ?? 'Unassigned' }}</td>
-            <td>{{ $ticket->created_at?->format('Y-m-d H:i') }}</td>
+
+            <td>
+                <span class="badge badge-status-{{ $ticket->status->value }}">
+                    {{ str_replace('_', ' ', ucfirst($ticket->status->value)) }}
+                </span>
+            </td>
+
+            <td>
+                <span class="badge badge-priority-{{ $ticket->priority->value }}">
+                    {{ ucfirst($ticket->priority->value) }}
+                </span>
+            </td>
+
+            <td>
+                {{ $ticket->creator->name }}
+            </td>
+
+            <td>
+                {{ $ticket->assignee?->name ?? 'Unassigned' }}
+            </td>
+
+            <td>
+                {{ $ticket->created_at?->format('Y-m-d H:i') }}
+            </td>
         </tr>
         @endforeach
     </tbody>
@@ -108,5 +131,4 @@
 
 {{ $tickets->links() }}
 @endif
-
 @endsection
