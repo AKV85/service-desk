@@ -57,10 +57,16 @@ class DashboardTest extends TestCase
 
         $response->assertOk();
 
-        $response->assertSee('New: 1');
-        $response->assertSee('In progress: 0');
-        $response->assertSee('Resolved: 1');
-        $response->assertSee('Closed: 0');
+        $response->assertSeeInOrder([
+            'New',
+            '1',
+            'In progress',
+            '0',
+            'Resolved',
+            '1',
+            'Closed',
+            '0',
+        ]);
 
         $response->assertSee('My new ticket');
         $response->assertSee('My resolved ticket');
@@ -94,8 +100,13 @@ class DashboardTest extends TestCase
             ->get(route('dashboard'));
 
         $response->assertOk();
-        $response->assertSee('New: 1');
-        $response->assertSee('Resolved: 1');
+
+        $response->assertSeeInOrder([
+            'New',
+            '1',
+            'Resolved',
+            '1',
+        ]);
     }
 
     public function test_admin_sees_status_counts_for_all_tickets(): void
@@ -125,7 +136,11 @@ class DashboardTest extends TestCase
             ->get(route('dashboard'));
 
         $response->assertOk();
-        $response->assertSee('Closed: 2');
+
+        $response->assertSeeInOrder([
+            'Closed',
+            '2',
+        ]);
     }
 
     public function test_agent_sees_tickets_assigned_to_them(): void
@@ -159,7 +174,6 @@ class DashboardTest extends TestCase
             ->get(route('dashboard'));
 
         $response->assertOk();
-
         $response->assertSee('Assigned to me');
 
         /*

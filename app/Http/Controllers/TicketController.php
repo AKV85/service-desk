@@ -34,7 +34,9 @@ class TicketController extends Controller
             'description' => $request->validated('description'),
         ]);
 
-        return redirect()->route('tickets.show', $ticket);
+        return redirect()
+            ->route('tickets.show', $ticket)
+            ->with('success', 'Ticket created successfully.');
     }
 
     public function show(Ticket $ticket): View
@@ -126,7 +128,9 @@ class TicketController extends Controller
             'description' => $request->validated('description'),
         ]);
 
-        return redirect()->route('tickets.show', $ticket);
+        return redirect()
+            ->route('tickets.show', $ticket)
+            ->with('success', 'Ticket updated successfully.');
     }
 
     public function updateStatus(
@@ -140,7 +144,9 @@ class TicketController extends Controller
             $request->user()
         );
 
-        return redirect()->route('tickets.show', $ticket);
+        return redirect()
+            ->route('tickets.show', $ticket)
+            ->with('success', 'Ticket status updated successfully.');
     }
 
     public function updatePriority(
@@ -154,7 +160,9 @@ class TicketController extends Controller
             $request->user()
         );
 
-        return redirect()->route('tickets.show', $ticket);
+        return redirect()
+            ->route('tickets.show', $ticket)
+            ->with('success', 'Ticket priority updated successfully.');
     }
 
     public function assign(
@@ -174,7 +182,9 @@ class TicketController extends Controller
             $request->user()
         );
 
-        return redirect()->route('tickets.show', $ticket);
+        return redirect()
+            ->route('tickets.show', $ticket)
+            ->with('success', 'Ticket assignment updated successfully.');
     }
 
     public function storeComment(
@@ -186,6 +196,8 @@ class TicketController extends Controller
             'body' => $request->validated('body'),
         ]);
 
-        return redirect()->route('tickets.show', $ticket);
+        return redirect()
+            ->route('tickets.show', $ticket)
+            ->with('success', 'Comment added successfully.');
     }
 }
