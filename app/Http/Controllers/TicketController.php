@@ -7,6 +7,7 @@ use App\Models\Ticket;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 use App\Enums\UserRole;
+use App\Http\Requests\UpdateTicketRequest;
 
 class TicketController extends Controller
 {
@@ -34,19 +35,36 @@ class TicketController extends Controller
     }
 
     public function index(): View
-{
-    $user = request()->user();
+    {
+        $user = request()->user();
 
-    $query = Ticket::query()
-        ->with(['creator', 'assignee'])
-        ->latest();
+        $query = Ticket::query()
+            ->with(['creator', 'assignee'])
+            ->latest();
 
-    if ($user->role === UserRole::Requester) {
-        $query->where('created_by_id', $user->id);
+        if ($user->role === UserRole::Requester) {
+            $query->where('created_by_id', $user->id);
+        }
+
+        $tickets = $query->paginate(15);
+
+        return view('tickets.index', compact('tickets'));
     }
 
-    $tickets = $query->paginate(15);
+    public function edit(Ticket $ticket): View
+    {
+        $this->authorize('update', $ticket);
 
-    return view('tickets.index', compact('tickets'));
-}
+        return view('tickets.edit', compact('ticket'));
+    }
+
+    public function update(UpdateTicketRequest $request, Ticket $ticket): RedirectResponse
+    {
+        $ticket->update([
+            'title' => $request->validated('title'),
+            'description' => $request->validated('description'),
+        ]);
+
+        return redirect()->route('tickets.show', $ticket);
+    }
 }

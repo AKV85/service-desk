@@ -1,10 +1,12 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{{ $ticket->title }} | Service Desk</title>
 </head>
+
 <body>
     <h1>{{ $ticket->title }}</h1>
 
@@ -12,5 +14,9 @@
 
     <p>Status: {{ $ticket->status->value }}</p>
     <p>Priority: {{ $ticket->priority->value }}</p>
+    <p>
+        <a href="{{ route('tickets.edit', $ticket) }}">Edit ticket</a>
+    </p>
 </body>
+
 </html>

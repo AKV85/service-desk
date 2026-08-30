@@ -20,4 +20,8 @@ Route::middleware('auth')->group(function () {
         ->name('tickets.store');
     Route::get('/tickets/{ticket}', [TicketController::class, 'show'])
         ->name('tickets.show');
+    Route::get('/tickets/{ticket}/edit', [TicketController::class, 'edit'])
+        ->name('tickets.edit');
+    Route::put('/tickets/{ticket}', [TicketController::class, 'update'])
+        ->name('tickets.update');
 });
