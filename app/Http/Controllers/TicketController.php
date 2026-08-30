@@ -16,6 +16,7 @@ use App\Services\TicketWorkflowService;
 use App\Http\Requests\AssignTicketRequest;
 use App\Models\User;
 use App\Http\Requests\StoreTicketCommentRequest;
+use App\Http\Requests\TicketIndexRequest;
 
 class TicketController extends Controller
 {
@@ -62,9 +63,9 @@ class TicketController extends Controller
         return view('tickets.show', compact('ticket', 'agents'));
     }
 
-    public function index(): View
+    public function index(TicketIndexRequest $request): View
     {
-        $user = request()->user();
+        $user = $request->user();
 
         $query = Ticket::query()
             ->with(['creator', 'assignee'])
@@ -74,9 +75,41 @@ class TicketController extends Controller
             $query->where('created_by_id', $user->id);
         }
 
-        $tickets = $query->paginate(15);
+        if ($search = $request->validated('search')) {
+            $query->where('title', 'like', "%{$search}%");
+        }
 
-        return view('tickets.index', compact('tickets'));
+        if ($status = $request->validated('status')) {
+            $query->where('status', $status);
+        }
+
+        if ($priority = $request->validated('priority')) {
+            $query->where('priority', $priority);
+        }
+
+        if (
+            $user->role !== UserRole::Requester
+            && ($assignee = $request->validated('assignee'))
+        ) {
+            if ($assignee === 'unassigned') {
+                $query->whereNull('assigned_to_id');
+            } elseif (ctype_digit($assignee)) {
+                $query->where('assigned_to_id', (int) $assignee);
+            }
+        }
+
+        $tickets = $query
+            ->paginate(15)
+            ->withQueryString();
+
+        $agents = $user->role === UserRole::Requester
+            ? collect()
+            : User::query()
+            ->where('role', UserRole::Agent)
+            ->orderBy('name')
+            ->get();
+
+        return view('tickets.index', compact('tickets', 'agents'));
     }
 
     public function edit(Ticket $ticket): View
