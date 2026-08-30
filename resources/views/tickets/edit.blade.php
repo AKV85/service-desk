@@ -1,46 +1,44 @@
-<!DOCTYPE html>
-<html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Ticket | Service Desk</title>
-</head>
-<body>
-    <h1>Edit Ticket</h1>
+@extends('layouts.app')
 
-    @if ($errors->any())
-        <ul>
-            @foreach ($errors->all() as $error)
-                <li>{{ $error }}</li>
-            @endforeach
-        </ul>
-    @endif
+@section('title', 'Edit Ticket | Service Desk')
 
-    <form method="POST" action="{{ route('tickets.update', $ticket) }}">
-        @csrf
-        @method('PUT')
+@section('content')
+<h2>Edit Ticket</h2>
 
-        <div>
-            <label for="title">Title</label>
-            <input
-                id="title"
-                type="text"
-                name="title"
-                value="{{ old('title', $ticket->title) }}"
-                required
-            >
-        </div>
+@if ($errors->any())
+<ul>
+    @foreach ($errors->all() as $error)
+    <li>{{ $error }}</li>
+    @endforeach
+</ul>
+@endif
 
-        <div>
-            <label for="description">Description</label>
-            <textarea
-                id="description"
-                name="description"
-                required
-            >{{ old('description', $ticket->description) }}</textarea>
-        </div>
+<form method="POST" action="{{ route('tickets.update', $ticket) }}">
+    @csrf
+    @method('PUT')
 
-        <button type="submit">Save changes</button>
-    </form>
-</body>
-</html>
+    <div>
+        <label for="title">Title</label>
+        <input
+            id="title"
+            type="text"
+            name="title"
+            value="{{ old('title', $ticket->title) }}"
+            required>
+    </div>
+
+    <div>
+        <label for="description">Description</label>
+        <textarea
+            id="description"
+            name="description"
+            required>{{ old('description', $ticket->description) }}</textarea>
+    </div>
+
+    <button type="submit">Save changes</button>
+</form>
+
+<p>
+    <a href="{{ route('tickets.show', $ticket) }}">Back to ticket</a>
+</p>
+@endsection
