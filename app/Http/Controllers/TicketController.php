@@ -15,6 +15,7 @@ use App\Http\Requests\ChangeTicketStatusRequest;
 use App\Services\TicketWorkflowService;
 use App\Http\Requests\AssignTicketRequest;
 use App\Models\User;
+use App\Http\Requests\StoreTicketCommentRequest;
 
 class TicketController extends Controller
 {
@@ -38,6 +39,12 @@ class TicketController extends Controller
     public function show(Ticket $ticket): View
     {
         $this->authorize('view', $ticket);
+
+        $ticket->load([
+            'comments' => fn($query) => $query
+                ->with('user')
+                ->oldest(),
+        ]);
 
         $agents = collect();
 
@@ -129,6 +136,18 @@ class TicketController extends Controller
             $assignee,
             $request->user()
         );
+
+        return redirect()->route('tickets.show', $ticket);
+    }
+
+    public function storeComment(
+        StoreTicketCommentRequest $request,
+        Ticket $ticket
+    ): RedirectResponse {
+        $ticket->comments()->create([
+            'user_id' => $request->user()->id,
+            'body' => $request->validated('body'),
+        ]);
 
         return redirect()->route('tickets.show', $ticket);
     }

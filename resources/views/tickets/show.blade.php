@@ -92,6 +92,43 @@
     <p>{{ $message }}</p>
     @enderror
     @endcan
+    <h2>Comments</h2>
+
+    @if ($ticket->comments->isEmpty())
+    <p>No comments yet.</p>
+    @else
+    @foreach ($ticket->comments as $comment)
+    <div>
+        <strong>{{ $comment->user->name }}</strong>
+        <small>{{ $comment->created_at?->format('Y-m-d H:i') }}</small>
+
+        <p>{{ $comment->body }}</p>
+    </div>
+    @endforeach
+    @endif
+
+    @can('comment', $ticket)
+    <h3>Add comment</h3>
+
+    <form method="POST" action="{{ route('tickets.comments.store', $ticket) }}">
+        @csrf
+
+        <div>
+            <label for="body">Comment</label>
+
+            <textarea
+                id="body"
+                name="body"
+                required>{{ old('body') }}</textarea>
+        </div>
+
+        @error('body')
+        <p>{{ $message }}</p>
+        @enderror
+
+        <button type="submit">Add comment</button>
+    </form>
+    @endcan
     <p>
         <a href="{{ route('tickets.edit', $ticket) }}">Edit ticket</a>
     </p>

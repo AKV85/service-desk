@@ -73,4 +73,9 @@ class TicketPolicy
             default => false,
         };
     }
+
+    public function comment(User $user, Ticket $ticket): bool
+    {
+        return $this->view($user, $ticket);
+    }
 }
