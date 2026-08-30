@@ -65,6 +65,33 @@
     <p>{{ $message }}</p>
     @enderror
     @endcan
+    @can('assign', $ticket)
+    <h2>Assign ticket</h2>
+
+    <form method="POST" action="{{ route('tickets.assignee.update', $ticket) }}">
+        @csrf
+        @method('PATCH')
+
+        <select name="assigned_to_id">
+            <option value="">Unassigned</option>
+
+            @foreach ($agents as $agent)
+            <option
+                value="{{ $agent->id }}"
+                @selected($ticket->assigned_to_id === $agent->id)
+                >
+                {{ $agent->name }}
+            </option>
+            @endforeach
+        </select>
+
+        <button type="submit">Assign</button>
+    </form>
+
+    @error('assigned_to_id')
+    <p>{{ $message }}</p>
+    @enderror
+    @endcan
     <p>
         <a href="{{ route('tickets.edit', $ticket) }}">Edit ticket</a>
     </p>

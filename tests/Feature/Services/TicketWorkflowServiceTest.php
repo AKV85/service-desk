@@ -10,6 +10,7 @@ use App\Services\TicketWorkflowService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
+use App\Enums\UserRole;
 
 class TicketWorkflowServiceTest extends TestCase
 {
@@ -202,5 +203,102 @@ class TicketWorkflowServiceTest extends TestCase
 
         $this->assertSame(TicketStatus::New, $ticket->status);
         $this->assertSame(TicketPriority::Medium, $ticket->priority);
+    }
+
+    public function test_ticket_can_be_assigned_to_agent_and_history_is_recorded(): void
+    {
+        $user = User::factory()->create();
+        $agent = User::factory()->create([
+            'role' => UserRole::Agent,
+        ]);
+
+        $ticket = Ticket::create([
+            'created_by_id' => $user->id,
+            'title' => 'Ticket',
+            'description' => 'Test',
+        ]);
+
+        $this->service->assign($ticket, $agent, $user);
+
+        $ticket->refresh();
+
+        $this->assertSame($agent->id, $ticket->assigned_to_id);
+
+        $this->assertDatabaseHas('ticket_histories', [
+            'ticket_id' => $ticket->id,
+            'user_id' => $user->id,
+            'action' => 'assignee_changed',
+        ]);
+    }
+
+    public function test_ticket_can_be_reassigned_to_another_agent(): void
+    {
+        $user = User::factory()->create();
+
+        $firstAgent = User::factory()->create([
+            'role' => UserRole::Agent,
+        ]);
+
+        $secondAgent = User::factory()->create([
+            'role' => UserRole::Agent,
+        ]);
+
+        $ticket = Ticket::create([
+            'created_by_id' => $user->id,
+            'assigned_to_id' => $firstAgent->id,
+            'title' => 'Ticket',
+            'description' => 'Test',
+        ]);
+
+        $this->service->assign($ticket, $secondAgent, $user);
+
+        $ticket->refresh();
+
+        $this->assertSame($secondAgent->id, $ticket->assigned_to_id);
+
+        $history = $ticket->history()->latest('id')->first();
+
+        $this->assertSame(
+            $firstAgent->id,
+            $history->old_values['assigned_to_id']
+        );
+
+        $this->assertSame(
+            $secondAgent->id,
+            $history->new_values['assigned_to_id']
+        );
+    }
+
+    public function test_ticket_can_be_unassigned(): void
+    {
+        $user = User::factory()->create();
+
+        $agent = User::factory()->create([
+            'role' => UserRole::Agent,
+        ]);
+
+        $ticket = Ticket::create([
+            'created_by_id' => $user->id,
+            'assigned_to_id' => $agent->id,
+            'title' => 'Ticket',
+            'description' => 'Test',
+        ]);
+
+        $this->service->assign($ticket, null, $user);
+
+        $ticket->refresh();
+
+        $this->assertNull($ticket->assigned_to_id);
+
+        $history = $ticket->history()->latest('id')->first();
+
+        $this->assertSame(
+            $agent->id,
+            $history->old_values['assigned_to_id']
+        );
+
+        $this->assertNull(
+            $history->new_values['assigned_to_id']
+        );
     }
 }

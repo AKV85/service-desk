@@ -28,4 +28,6 @@ Route::middleware('auth')->group(function () {
         ->name('tickets.status.update');
     Route::patch('/tickets/{ticket}/priority', [TicketController::class, 'updatePriority'])
         ->name('tickets.priority.update');
+    Route::patch('/tickets/{ticket}/assignee', [TicketController::class, 'assign'])
+        ->name('tickets.assignee.update');
 });

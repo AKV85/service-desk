@@ -12,8 +12,7 @@ class TicketWorkflowService
 {
     public function __construct(
         private readonly TicketStatusTransitionService $transitionService
-    ) {
-    }
+    ) {}
 
     public function changeStatus(
         Ticket $ticket,
@@ -81,6 +80,33 @@ class TicketWorkflowService
             ],
             'new_values' => [
                 'priority' => $newPriority->value,
+            ],
+        ]);
+    }
+
+    public function assign(
+        Ticket $ticket,
+        ?User $assignee,
+        User $user
+    ): void {
+        $oldAssigneeId = $ticket->assigned_to_id;
+        $newAssigneeId = $assignee?->id;
+
+        if ($oldAssigneeId === $newAssigneeId) {
+            return;
+        }
+
+        $ticket->assigned_to_id = $newAssigneeId;
+        $ticket->save();
+
+        $ticket->history()->create([
+            'user_id' => $user->id,
+            'action' => 'assignee_changed',
+            'old_values' => [
+                'assigned_to_id' => $oldAssigneeId,
+            ],
+            'new_values' => [
+                'assigned_to_id' => $newAssigneeId,
             ],
         ]);
     }

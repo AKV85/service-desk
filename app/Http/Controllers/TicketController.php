@@ -13,6 +13,8 @@ use App\Enums\TicketStatus;
 use App\Http\Requests\ChangeTicketPriorityRequest;
 use App\Http\Requests\ChangeTicketStatusRequest;
 use App\Services\TicketWorkflowService;
+use App\Http\Requests\AssignTicketRequest;
+use App\Models\User;
 
 class TicketController extends Controller
 {
@@ -32,11 +34,21 @@ class TicketController extends Controller
 
         return redirect()->route('tickets.show', $ticket);
     }
+
     public function show(Ticket $ticket): View
     {
         $this->authorize('view', $ticket);
 
-        return view('tickets.show', compact('ticket'));
+        $agents = collect();
+
+        if (request()->user()->can('assign', $ticket)) {
+            $agents = User::query()
+                ->where('role', UserRole::Agent)
+                ->orderBy('name')
+                ->get();
+        }
+
+        return view('tickets.show', compact('ticket', 'agents'));
     }
 
     public function index(): View
@@ -95,6 +107,26 @@ class TicketController extends Controller
         $workflowService->changePriority(
             $ticket,
             TicketPriority::from($request->validated('priority')),
+            $request->user()
+        );
+
+        return redirect()->route('tickets.show', $ticket);
+    }
+
+    public function assign(
+        AssignTicketRequest $request,
+        Ticket $ticket,
+        TicketWorkflowService $workflowService
+    ): RedirectResponse {
+        $assigneeId = $request->validated('assigned_to_id');
+
+        $assignee = $assigneeId !== null
+            ? User::findOrFail($assigneeId)
+            : null;
+
+        $workflowService->assign(
+            $ticket,
+            $assignee,
             $request->user()
         );
 
