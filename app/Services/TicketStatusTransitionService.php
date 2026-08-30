@@ -23,4 +23,24 @@ class TicketStatusTransitionService
             TicketStatus::Closed => false,
         };
     }
+
+    public function allowedTransitions(TicketStatus $from): array
+    {
+        return match ($from) {
+            TicketStatus::New => [
+                TicketStatus::InProgress,
+            ],
+
+            TicketStatus::InProgress => [
+                TicketStatus::Resolved,
+            ],
+
+            TicketStatus::Resolved => [
+                TicketStatus::InProgress,
+                TicketStatus::Closed,
+            ],
+
+            TicketStatus::Closed => [],
+        };
+    }
 }
