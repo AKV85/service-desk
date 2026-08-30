@@ -1,66 +1,53 @@
-<!DOCTYPE html>
-<html lang="en">
+@extends('layouts.app')
 
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Dashboard | Service Desk</title>
-</head>
+@section('title', 'Dashboard | Service Desk')
 
-<body>
-    <h1>Service Desk Dashboard</h1>
+@section('content')
+<h2>Dashboard</h2>
 
-    <p>
-        <a href="{{ route('tickets.index') }}">View tickets</a>
-        |
-        <a href="{{ route('tickets.create') }}">Create ticket</a>
-    </p>
+<h3>Ticket overview</h3>
 
-    <h2>Ticket overview</h2>
+<ul>
+    <li>New: {{ $counts['new'] }}</li>
+    <li>In progress: {{ $counts['in_progress'] }}</li>
+    <li>Resolved: {{ $counts['resolved'] }}</li>
+    <li>Closed: {{ $counts['closed'] }}</li>
+</ul>
 
-    <ul>
-        <li>New: {{ $counts['new'] }}</li>
-        <li>In progress: {{ $counts['in_progress'] }}</li>
-        <li>Resolved: {{ $counts['resolved'] }}</li>
-        <li>Closed: {{ $counts['closed'] }}</li>
-    </ul>
+@if ($unassignedCount !== null)
+<p>Unassigned tickets: {{ $unassignedCount }}</p>
+@endif
 
-    @if ($unassignedCount !== null)
-        <p>Unassigned tickets: {{ $unassignedCount }}</p>
-    @endif
+<h3>Recent tickets</h3>
 
-    <h2>Recent tickets</h2>
+@if ($recentTickets->isEmpty())
+<p>No recent tickets.</p>
+@else
+<ul>
+    @foreach ($recentTickets as $ticket)
+    <li>
+        <a href="{{ route('tickets.show', $ticket) }}">
+            {{ $ticket->title }}
+        </a>
 
-    @if ($recentTickets->isEmpty())
-        <p>No recent tickets.</p>
-    @else
-        <ul>
-            @foreach ($recentTickets as $ticket)
-                <li>
-                    <a href="{{ route('tickets.show', $ticket) }}">
-                        {{ $ticket->title }}
-                    </a>
+        — {{ $ticket->status->value }}
+        — {{ $ticket->priority->value }}
+    </li>
+    @endforeach
+</ul>
+@endif
 
-                    — {{ $ticket->status->value }}
-                    — {{ $ticket->priority->value }}
-                </li>
-            @endforeach
-        </ul>
-    @endif
+@if ($assignedToMe->isNotEmpty())
+<h3>Assigned to me</h3>
 
-    @if ($assignedToMe->isNotEmpty())
-        <h2>Assigned to me</h2>
-
-        <ul>
-            @foreach ($assignedToMe as $ticket)
-                <li>
-                    <a href="{{ route('tickets.show', $ticket) }}">
-                        {{ $ticket->title }}
-                    </a>
-                </li>
-            @endforeach
-        </ul>
-    @endif
-</body>
-
-</html>
+<ul>
+    @foreach ($assignedToMe as $ticket)
+    <li>
+        <a href="{{ route('tickets.show', $ticket) }}">
+            {{ $ticket->title }}
+        </a>
+    </li>
+    @endforeach
+</ul>
+@endif
+@endsection
