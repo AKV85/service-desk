@@ -30,4 +30,6 @@ Route::middleware('auth')->group(function () {
         ->name('tickets.priority.update');
     Route::patch('/tickets/{ticket}/assignee', [TicketController::class, 'assign'])
         ->name('tickets.assignee.update');
+    Route::post('/tickets/{ticket}/comments', [TicketController::class, 'storeComment'])
+        ->name('tickets.comments.store');
 });
