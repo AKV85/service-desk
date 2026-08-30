@@ -108,6 +108,48 @@
     @endif
 
     @can('comment', $ticket)
+    <h2>History</h2>
+
+    @if ($ticket->history->isEmpty())
+    <p>No history yet.</p>
+    @else
+    @foreach ($ticket->history as $history)
+    <div>
+        <strong>
+            {{ $history->user?->name ?? 'Unknown user' }}
+        </strong>
+
+        <small>
+            {{ $history->created_at?->format('Y-m-d H:i') }}
+        </small>
+
+        @if ($history->action === 'status_changed')
+        <p>
+            Changed status from
+            <strong>{{ $history->old_values['status'] ?? 'unknown' }}</strong>
+            to
+            <strong>{{ $history->new_values['status'] ?? 'unknown' }}</strong>
+        </p>
+        @elseif ($history->action === 'priority_changed')
+        <p>
+            Changed priority from
+            <strong>{{ $history->old_values['priority'] ?? 'unknown' }}</strong>
+            to
+            <strong>{{ $history->new_values['priority'] ?? 'unknown' }}</strong>
+        </p>
+        @elseif ($history->action === 'assignee_changed')
+        <p>
+            Changed assignee from
+            <strong>{{ $history->old_values['assigned_to_id'] ?? 'Unassigned' }}</strong>
+            to
+            <strong>{{ $history->new_values['assigned_to_id'] ?? 'Unassigned' }}</strong>
+        </p>
+        @else
+        <p>{{ $history->action }}</p>
+        @endif
+    </div>
+    @endforeach
+    @endif
     <h3>Add comment</h3>
 
     <form method="POST" action="{{ route('tickets.comments.store', $ticket) }}">

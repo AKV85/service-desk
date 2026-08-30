@@ -44,6 +44,10 @@ class TicketController extends Controller
             'comments' => fn($query) => $query
                 ->with('user')
                 ->oldest(),
+
+            'history' => fn($query) => $query
+                ->with('user')
+                ->oldest(),
         ]);
 
         $agents = collect();
