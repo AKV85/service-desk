@@ -44,6 +44,12 @@ User and role management may be extended in future versions.
 
 For the MVP, the role is stored directly on the `users` table and represented in the application by a PHP backed enum.
 
+Each user has exactly one role in the MVP. Roles represent increasing access levels:
+
+`requester -> agent -> admin`
+
+An agent can perform requester actions, and an administrator can perform both requester and agent actions.
+
 Supported roles:
 
 - `requester`
@@ -218,12 +224,10 @@ Initial indexes:
 
 - `tickets(created_by_id)`
 - `tickets(assigned_to_id)`
-- `tickets(status)`
-- `tickets(priority)`
 - `tickets(status, assigned_to_id)`
 - `tickets(created_at)`
 - `ticket_comments(ticket_id, created_at)`
-- `ticket_history(ticket_id, created_at)`
+- `ticket_histories(ticket_id, created_at)`
 
 Indexes may be adjusted later based on real application queries and query execution plans.
 
@@ -233,13 +237,18 @@ Indexes may be adjusted later based on real application queries and query execut
 
 Deleting a user must not automatically delete their historical tickets.
 
-For ticket assignment:
+Foreign key deletion rules:
 
-`assigned_to_id -> ON DELETE SET NULL`
+- `tickets.created_by_id -> ON DELETE RESTRICT`
+- `tickets.assigned_to_id -> ON DELETE SET NULL`
+- `ticket_comments.ticket_id -> ON DELETE CASCADE`
+- `ticket_comments.user_id -> ON DELETE RESTRICT`
+- `ticket_histories.ticket_id -> ON DELETE CASCADE`
+- `ticket_histories.user_id -> ON DELETE SET NULL`
 
 Tickets are not physically deleted as part of the MVP functionality.
 
-If a ticket is physically removed administratively, its comments and history records may be deleted with it.
+If a ticket is physically removed administratively, its comments and history records are deleted with it.
 
 ---
 
@@ -307,6 +316,12 @@ Administratorius turi visas specialisto teises.
 Naudotojų ir rolių valdymas gali būti išplėstas būsimose sistemos versijose.
 
 MVP versijoje rolė saugoma tiesiogiai `users` lentelėje ir programoje atvaizduojama naudojant PHP backed enum.
+
+MVP versijoje kiekvienas naudotojas turi vieną rolę. Rolės reiškia didėjančius prieigos lygius:
+
+`requester -> agent -> admin`
+
+Agent gali atlikti requester veiksmus, o admin gali atlikti tiek requester, tiek agent veiksmus.
 
 Galimos rolės:
 
@@ -482,12 +497,10 @@ Pradiniai indeksai:
 
 - `tickets(created_by_id)`
 - `tickets(assigned_to_id)`
-- `tickets(status)`
-- `tickets(priority)`
 - `tickets(status, assigned_to_id)`
 - `tickets(created_at)`
 - `ticket_comments(ticket_id, created_at)`
-- `ticket_history(ticket_id, created_at)`
+- `ticket_histories(ticket_id, created_at)`
 
 Vėliau indeksai gali būti koreguojami pagal realias sistemos užklausas ir jų vykdymo planus.
 
@@ -497,13 +510,18 @@ Vėliau indeksai gali būti koreguojami pagal realias sistemos užklausas ir jų
 
 Naudotojo pašalinimas neturi automatiškai pašalinti jo istorinių užklausų.
 
-Užklausos priskyrimui:
+Išorinių raktų šalinimo taisyklės:
 
-`assigned_to_id -> ON DELETE SET NULL`
+- `tickets.created_by_id -> ON DELETE RESTRICT`
+- `tickets.assigned_to_id -> ON DELETE SET NULL`
+- `ticket_comments.ticket_id -> ON DELETE CASCADE`
+- `ticket_comments.user_id -> ON DELETE RESTRICT`
+- `ticket_histories.ticket_id -> ON DELETE CASCADE`
+- `ticket_histories.user_id -> ON DELETE SET NULL`
 
 MVP funkcionalume fizinis užklausų šalinimas nenumatytas.
 
-Jeigu užklausa administraciniu būdu fiziškai pašalinama, kartu gali būti pašalinti jos komentarai ir istorijos įrašai.
+Jeigu užklausa administraciniu būdu fiziškai pašalinama, jos komentarai ir istorijos įrašai pašalinami kartu.
 
 ---
 
