@@ -24,4 +24,8 @@ Route::middleware('auth')->group(function () {
         ->name('tickets.edit');
     Route::put('/tickets/{ticket}', [TicketController::class, 'update'])
         ->name('tickets.update');
+    Route::patch('/tickets/{ticket}/status', [TicketController::class, 'updateStatus'])
+        ->name('tickets.status.update');
+    Route::patch('/tickets/{ticket}/priority', [TicketController::class, 'updatePriority'])
+        ->name('tickets.priority.update');
 });

@@ -69,6 +69,8 @@ class TicketPolicy
 
             UserRole::Agent,
             UserRole::Admin => true,
+
+            default => false,
         };
     }
 }

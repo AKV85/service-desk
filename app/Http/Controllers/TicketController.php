@@ -8,6 +8,11 @@ use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 use App\Enums\UserRole;
 use App\Http\Requests\UpdateTicketRequest;
+use App\Enums\TicketPriority;
+use App\Enums\TicketStatus;
+use App\Http\Requests\ChangeTicketPriorityRequest;
+use App\Http\Requests\ChangeTicketStatusRequest;
+use App\Services\TicketWorkflowService;
 
 class TicketController extends Controller
 {
@@ -64,6 +69,34 @@ class TicketController extends Controller
             'title' => $request->validated('title'),
             'description' => $request->validated('description'),
         ]);
+
+        return redirect()->route('tickets.show', $ticket);
+    }
+
+    public function updateStatus(
+        ChangeTicketStatusRequest $request,
+        Ticket $ticket,
+        TicketWorkflowService $workflowService
+    ): RedirectResponse {
+        $workflowService->changeStatus(
+            $ticket,
+            TicketStatus::from($request->validated('status')),
+            $request->user()
+        );
+
+        return redirect()->route('tickets.show', $ticket);
+    }
+
+    public function updatePriority(
+        ChangeTicketPriorityRequest $request,
+        Ticket $ticket,
+        TicketWorkflowService $workflowService
+    ): RedirectResponse {
+        $workflowService->changePriority(
+            $ticket,
+            TicketPriority::from($request->validated('priority')),
+            $request->user()
+        );
 
         return redirect()->route('tickets.show', $ticket);
     }

@@ -10,6 +10,11 @@ use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Ticket extends Model
 {
+    protected $attributes = [
+        'status' => 'new',
+        'priority' => 'medium',
+    ];
+    
     protected $fillable = [
         'created_by_id',
         'assigned_to_id',
