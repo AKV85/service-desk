@@ -2,15 +2,16 @@
 
 use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\TicketController;
+use App\Http\Controllers\DashboardController;
 
 Route::get('/', function () {
     return view('welcome');
 });
 
-Route::get('/dashboard', function () {
-    return 'Service Desk Dashboard';
-})->middleware('auth')->name('dashboard');
-
+Route::get('/dashboard', [DashboardController::class, 'index'])
+    ->middleware('auth')
+    ->name('dashboard');
+    
 Route::middleware('auth')->group(function () {
     Route::get('/tickets', [TicketController::class, 'index'])
         ->name('tickets.index');
