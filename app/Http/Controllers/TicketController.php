@@ -214,4 +214,15 @@ class TicketController extends Controller
             ->route('tickets.show', $ticket)
             ->with('success', 'Comment added successfully.');
     }
+
+    public function destroy(Ticket $ticket): RedirectResponse
+    {
+        $this->authorize('delete', $ticket);
+
+        $ticket->delete();
+
+        return redirect()
+            ->route('tickets.index')
+            ->with('success', 'Ticket deleted successfully.');
+    }
 }

@@ -53,9 +53,26 @@
         </p>
         @endif
 
-        <p>
-            <a href="{{ route('tickets.edit', $ticket) }}">Edit ticket</a>
-        </p>
+        <div class="ticket-actions">
+            <a href="{{ route('tickets.edit', $ticket) }}">
+                Edit ticket
+            </a>
+
+            @can('delete', $ticket)
+            <form
+                method="POST"
+                action="{{ route('tickets.destroy', $ticket) }}"
+                class="delete-ticket-form"
+                onsubmit="return confirm('Are you sure you want to delete this ticket?');">
+                @csrf
+                @method('DELETE')
+
+                <button type="submit" class="button-danger">
+                    Delete ticket
+                </button>
+            </form>
+            @endcan
+        </div>
     </section>
 
     @if (

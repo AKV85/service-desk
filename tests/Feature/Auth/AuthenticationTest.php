@@ -57,7 +57,7 @@ class AuthenticationTest extends TestCase
 
         $this->assertGuest();
 
-        $response->assertRedirect('/');
+        $response->assertRedirect(route('login'));
     }
 
     public function test_guest_cannot_access_protected_route(): void

@@ -43,7 +43,7 @@ class TicketAttachmentTest extends TestCase
         );
     }
 
-    public function test_attachments_are_deleted_when_ticket_is_deleted(): void
+    public function test_attachments_are_preserved_when_ticket_is_soft_deleted(): void
     {
         $user = User::factory()->create();
 
@@ -64,7 +64,11 @@ class TicketAttachmentTest extends TestCase
 
         $ticket->delete();
 
-        $this->assertDatabaseMissing('ticket_attachments', [
+        $this->assertSoftDeleted('tickets', [
+            'id' => $ticket->id,
+        ]);
+
+        $this->assertDatabaseHas('ticket_attachments', [
             'id' => $attachment->id,
         ]);
     }
