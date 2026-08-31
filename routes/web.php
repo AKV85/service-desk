@@ -38,4 +38,6 @@ Route::middleware('auth')->group(function () {
         ->name('tickets.attachments.store');
     Route::get('/tickets/{ticket}/attachments/{attachment}/download', [TicketAttachmentController::class, 'download'])
         ->name('tickets.attachments.download');
+    Route::delete('/tickets/{ticket}', [TicketController::class, 'destroy'])
+        ->name('tickets.destroy');
 });

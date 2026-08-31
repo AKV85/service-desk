@@ -78,4 +78,9 @@ class TicketPolicy
     {
         return $this->view($user, $ticket);
     }
+
+    public function delete(User $user, Ticket $ticket): bool
+    {
+        return $user->role === UserRole::Admin;
+    }
 }

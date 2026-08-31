@@ -225,6 +225,7 @@ ul {
 }
 
 @media (max-width: 800px) {
+
     .app-header,
     .header-left {
         align-items: flex-start;
@@ -338,7 +339,7 @@ ul {
     margin-top: 0;
 }
 
-.panel form + form {
+.panel form+form {
     padding-top: 20px;
     border-top: 1px solid #e5e7eb;
 }
@@ -381,6 +382,7 @@ ul {
 }
 
 @media (max-width: 900px) {
+
     .ticket-grid,
     .ticket-content-grid {
         grid-template-columns: 1fr;
@@ -450,8 +452,117 @@ ul {
     color: #6b7280;
 }
 
-.attachment-item > span {
+.attachment-item>span {
     color: #6b7280;
     font-size: 13px;
     white-space: nowrap;
+}
+
+.guest-body {
+    min-height: 100vh;
+    background: #f5f6f8;
+}
+
+.guest-main {
+    min-height: 100vh;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 30px 20px;
+}
+
+.login-wrapper {
+    width: 100%;
+    max-width: 420px;
+}
+
+.login-card {
+    background: #ffffff;
+    border: 1px solid #e5e7eb;
+    border-radius: 10px;
+    padding: 32px;
+}
+
+.login-header {
+    margin-bottom: 28px;
+    text-align: center;
+}
+
+.login-header h1 {
+    margin: 0 0 8px;
+    font-size: 28px;
+}
+
+.login-header p {
+    margin: 0;
+    color: #6b7280;
+}
+
+.login-form {
+    margin: 0;
+}
+
+.login-form input[type="email"],
+.login-form input[type="password"] {
+    max-width: none;
+}
+
+.remember-option {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 20px;
+    font-weight: 400;
+    cursor: pointer;
+}
+
+.remember-option input {
+    width: auto;
+    max-width: none;
+    margin: 0;
+}
+
+.login-button {
+    width: 100%;
+}
+
+.login-alert {
+    margin-bottom: 20px;
+    padding: 12px 14px;
+    border: 1px solid #fecaca;
+    border-radius: 6px;
+    background: #fef2f2;
+    color: #991b1b;
+}
+
+.login-alert ul {
+    margin: 0;
+    padding-left: 20px;
+}
+
+.ticket-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-top: 20px;
+}
+
+.ticket-actions a {
+    text-decoration: none;
+}
+
+.ticket-actions a:hover {
+    text-decoration: underline;
+}
+
+.delete-ticket-form {
+    margin: 0;
+}
+
+.button-danger {
+    background: #b91c1c;
+}
+
+.button-danger:hover {
+    background: #991b1b;
 }
