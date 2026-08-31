@@ -1,79 +1,305 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# Service Desk
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Service Desk is a Laravel-based support ticket management application built as a portfolio project.
 
-## About Laravel
+The application provides a complete support ticket workflow with role-based access control, ticket assignment, comments, change history, attachments, queued email notifications, demo data, and a REST API.
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Features
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+- User authentication
+- Role-based access control
+- Requester, Agent, and Admin roles
+- Ticket creation and editing
+- Ticket status workflow
+- Ticket priorities
+- Ticket assignment and unassignment
+- Ticket comments
+- Ticket change history
+- File attachments
+- Ticket filtering and search
+- Dashboard with ticket statistics
+- Queued email notifications
+- Mailtrap integration for local email testing
+- Demo seed data
+- REST API
+- Automated feature and integration tests
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## Technology Stack
 
-## Learning Laravel
+- PHP 8.3+
+- Laravel 13
+- MySQL
+- Laravel Sail
+- Docker
+- Laravel Fortify
+- Eloquent ORM
+- Laravel Notifications
+- Database queue
+- Mailtrap
+- PHPUnit
+- Faker
+- Git / GitHub
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
+## Architecture
 
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
+The application follows a layered structure:
 
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
-
-```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+```text
+Web / API Controllers
+        ↓
+Form Requests
+        ↓
+Policies
+        ↓
+Application Services
+        ↓
+Eloquent Models
+        ↓
+MySQL
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+Main responsibilities:
 
-## Contributing
+- Controllers handle HTTP requests and responses.
+- Form Requests handle input validation and request authorization.
+- Policies enforce role-based access control.
+- Services contain ticket workflow and notification logic.
+- Eloquent models represent domain entities and relationships.
+- Laravel Notifications handle queued email delivery.
+- The database queue processes asynchronous notification jobs.
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+Important services:
 
-## Code of Conduct
+```text
+TicketWorkflowService
+TicketStatusTransitionService
+TicketNotificationService
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+## User Roles
 
-## Security Vulnerabilities
+### Requester
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+A requester can:
 
-## License
+- create tickets;
+- view their own tickets;
+- edit their own ticket title and description;
+- comment on tickets they can access;
+- reopen their own resolved tickets.
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT). test git
+### Agent
 
-## Demo accounts
+An agent can:
+
+- view all tickets;
+- edit ticket information;
+- assign tickets to agents;
+- change ticket priority;
+- change ticket status;
+- comment on tickets.
+
+### Admin
+
+An administrator has the same ticket management permissions as an agent.
+
+## Ticket Workflow
+
+Supported statuses:
+
+```text
+new
+in_progress
+resolved
+closed
+```
+
+Main workflow:
+
+```text
+NEW → IN_PROGRESS → RESOLVED → CLOSED
+```
+
+A resolved ticket can be reopened:
+
+```text
+RESOLVED → IN_PROGRESS
+```
+
+When a ticket becomes resolved, `resolved_at` is populated.
+
+When a resolved ticket is reopened, `resolved_at` is cleared.
+
+When a ticket becomes closed, `closed_at` is populated.
+
+## Ticket Priorities
+
+Supported priorities:
+
+```text
+low
+medium
+high
+urgent
+```
+
+The default priority is:
+
+```text
+medium
+```
+
+## Ticket History
+
+Important ticket changes are stored in the ticket history.
+
+Currently recorded actions include:
+
+- status changes;
+- priority changes;
+- assignee changes.
+
+Old and new values are stored as JSON.
+
+## Attachments
+
+Users who can access a ticket can upload attachments.
+
+Supported file types include:
+
+```text
+jpg
+jpeg
+png
+pdf
+txt
+log
+```
+
+Maximum upload size:
+
+```text
+10 MB
+```
+
+Attachment metadata is stored in MySQL while files are stored using Laravel filesystem storage.
+
+Attachment downloads are protected by ticket authorization rules.
+
+## Email Notifications
+
+The application sends queued email notifications for important ticket events.
+
+Supported notifications include:
+
+- ticket creation;
+- ticket assignment;
+- ticket status change;
+- ticket priority change;
+- new ticket comment;
+- new ticket attachment.
+
+The user who performs an action is not notified when the notification would be redundant.
+
+Notifications are processed through Laravel's database queue.
+
+## REST API
+
+The Service Desk exposes an authenticated REST API for the core ticket workflow.
+
+Available endpoints:
+
+```text
+GET    /api/tickets
+POST   /api/tickets
+GET    /api/tickets/{ticket}
+PUT    /api/tickets/{ticket}
+PATCH  /api/tickets/{ticket}/status
+PATCH  /api/tickets/{ticket}/priority
+PATCH  /api/tickets/{ticket}/assignee
+POST   /api/tickets/{ticket}/comments
+```
+
+The API uses the same validation, authorization policies, workflow services, and business rules as the web interface.
+
+Validation errors are returned as JSON with HTTP status `422`.
+
+Unauthorized operations return the appropriate HTTP status.
+
+## Installation
+
+Clone the repository:
+
+```bash
+git clone <repository-url>
+cd service-desk
+```
+
+Install PHP dependencies:
+
+```bash
+composer install
+```
+
+Create the environment file:
+
+```bash
+cp .env.example .env
+```
+
+Generate the application key:
+
+```bash
+php artisan key:generate
+```
+
+Start Laravel Sail:
+
+```bash
+./vendor/bin/sail up -d
+```
+
+Run migrations:
+
+```bash
+./vendor/bin/sail artisan migrate
+```
+
+To recreate the database with demo data:
+
+```bash
+./vendor/bin/sail artisan migrate:fresh --seed
+```
+
+## Demo Accounts
+
+All demo accounts use the password:
+
+```text
+password
+```
 
 Requester:
+
+```text
 requester@example.com
-password
+```
 
 Agent:
+
+```text
 agent@example.com
-password
+```
 
 Admin:
+
+```text
 admin@example.com
-password
+```
 
-## Mailtrap email testing
+## Mailtrap Email Testing
 
-The project uses Mailtrap for local email testing.
+The project uses Mailtrap Sandbox for local email testing.
 
 Configure the following variables in `.env`:
 
@@ -90,7 +316,7 @@ APP_URL=http://localhost
 QUEUE_CONNECTION=database
 ```
 
-Do not commit real Mailtrap credentials.
+Never commit real Mailtrap credentials.
 
 Clear cached configuration after changing mail settings:
 
@@ -104,10 +330,62 @@ Run the queue worker:
 ./vendor/bin/sail artisan queue:work
 ```
 
-Queued ticket notifications can then be inspected in the Mailtrap Sandbox inbox.
+Mailtrap Sandbox may rate-limit emails when several queued notifications are processed quickly.
 
-Mailtrap Sandbox may rate-limit emails when several queued notifications are processed at once.
-For manual testing, process jobs individually if needed:
+For manual testing, jobs can be processed individually:
 
 ```bash
 ./vendor/bin/sail artisan queue:work --once
+```
+
+## Running Tests
+
+Run the full automated test suite:
+
+```bash
+./vendor/bin/sail artisan test
+```
+
+Current test suite:
+
+```text
+157 tests
+410 assertions
+```
+
+The suite covers:
+
+- authentication;
+- roles and authorization;
+- ticket creation and updates;
+- ticket workflow;
+- assignment;
+- comments;
+- history;
+- filtering;
+- dashboard;
+- attachments;
+- notifications;
+- demo seeders;
+- REST API.
+
+## Project Documentation
+
+Detailed domain model documentation is available here:
+
+```text
+docs/domain-model.md
+```
+
+The document describes:
+
+- domain entities;
+- relationships;
+- permissions;
+- ticket lifecycle;
+- database indexes;
+- deletion rules.
+
+## License
+
+This project is built as a portfolio and learning project using the Laravel framework.
