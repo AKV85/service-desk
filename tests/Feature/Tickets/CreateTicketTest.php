@@ -8,6 +8,8 @@ use App\Models\Ticket;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
+use App\Notifications\TicketCreatedNotification;
+use Illuminate\Support\Facades\Notification;
 
 class CreateTicketTest extends TestCase
 {
@@ -33,6 +35,8 @@ class CreateTicketTest extends TestCase
 
     public function test_authenticated_user_can_create_ticket(): void
     {
+        Notification::fake();
+
         $user = User::factory()->create();
 
         $response = $this
@@ -51,6 +55,14 @@ class CreateTicketTest extends TestCase
         $this->assertSame(TicketPriority::Medium, $ticket->priority);
 
         $response->assertRedirect(route('tickets.show', $ticket));
+
+        Notification::assertSentTo(
+            $user,
+            TicketCreatedNotification::class,
+            function (TicketCreatedNotification $notification) use ($ticket) {
+                return $notification->toArray($ticket->creator)['ticket_id'] === $ticket->id;
+            }
+        );
     }
 
     public function test_title_is_required(): void

@@ -17,6 +17,8 @@ use App\Http\Requests\AssignTicketRequest;
 use App\Models\User;
 use App\Http\Requests\StoreTicketCommentRequest;
 use App\Http\Requests\TicketIndexRequest;
+use App\Notifications\TicketCreatedNotification;
+use App\Services\TicketNotificationService;
 
 class TicketController extends Controller
 {
@@ -33,7 +35,9 @@ class TicketController extends Controller
             'title' => $request->validated('title'),
             'description' => $request->validated('description'),
         ]);
-
+        $request->user()->notify(
+            new TicketCreatedNotification($ticket)
+        );
         return redirect()
             ->route('tickets.show', $ticket)
             ->with('success', 'Ticket created successfully.');
@@ -192,12 +196,19 @@ class TicketController extends Controller
 
     public function storeComment(
         StoreTicketCommentRequest $request,
-        Ticket $ticket
+        Ticket $ticket,
+        TicketNotificationService $notificationService
     ): RedirectResponse {
-        $ticket->comments()->create([
+        $comment = $ticket->comments()->create([
             'user_id' => $request->user()->id,
             'body' => $request->validated('body'),
         ]);
+
+        $notificationService->commentAdded(
+            $ticket,
+            $comment,
+            $request->user()
+        );
 
         return redirect()
             ->route('tickets.show', $ticket)

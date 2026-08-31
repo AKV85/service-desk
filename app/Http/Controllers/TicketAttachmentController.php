@@ -8,12 +8,14 @@ use Illuminate\Http\RedirectResponse;
 use App\Models\TicketAttachment;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
+use App\Services\TicketNotificationService;
 
 class TicketAttachmentController extends Controller
 {
     public function store(
         StoreTicketAttachmentRequest $request,
-        Ticket $ticket
+        Ticket $ticket,
+        TicketNotificationService $notificationService
     ): RedirectResponse {
         $file = $request->file('attachment');
 
@@ -22,13 +24,19 @@ class TicketAttachmentController extends Controller
             'local'
         );
 
-        $ticket->attachments()->create([
+        $attachment = $ticket->attachments()->create([
             'user_id' => $request->user()->id,
             'original_name' => $file->getClientOriginalName(),
             'path' => $path,
             'mime_type' => $file->getMimeType(),
             'size' => $file->getSize(),
         ]);
+
+        $notificationService->attachmentAdded(
+            $ticket,
+            $attachment,
+            $request->user()
+        );
 
         return redirect()
             ->route('tickets.show', $ticket)

@@ -7,6 +7,8 @@ use App\Models\Ticket;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
+use App\Notifications\TicketAssignedNotification;
+use Illuminate\Support\Facades\Notification;
 
 class TicketAssignmentTest extends TestCase
 {
@@ -43,6 +45,7 @@ class TicketAssignmentTest extends TestCase
 
     public function test_agent_can_assign_ticket_to_agent(): void
     {
+        Notification::fake();
         $agent = User::factory()->create([
             'role' => UserRole::Agent,
         ]);
@@ -76,6 +79,14 @@ class TicketAssignmentTest extends TestCase
             'user_id' => $agent->id,
             'action' => 'assignee_changed',
         ]);
+
+        Notification::assertSentTo(
+            $targetAgent,
+            TicketAssignedNotification::class,
+            function (TicketAssignedNotification $notification) use ($ticket) {
+                return $notification->toArray($ticket->assignee)['ticket_id'] === $ticket->id;
+            }
+        );
     }
 
     public function test_admin_can_assign_ticket_to_agent(): void
@@ -171,6 +182,7 @@ class TicketAssignmentTest extends TestCase
 
     public function test_ticket_can_be_unassigned(): void
     {
+        Notification::fake();
         $agent = User::factory()->create([
             'role' => UserRole::Agent,
         ]);
@@ -199,5 +211,34 @@ class TicketAssignmentTest extends TestCase
         $ticket->refresh();
 
         $this->assertNull($ticket->assigned_to_id);
+        Notification::assertNothingSent();
+    }
+
+    public function test_reassigning_same_agent_does_not_send_notification(): void
+    {
+        Notification::fake();
+
+        $agent = User::factory()->create([
+            'role' => UserRole::Agent,
+        ]);
+
+        $requester = User::factory()->create();
+
+        $ticket = Ticket::create([
+            'created_by_id' => $requester->id,
+            'assigned_to_id' => $agent->id,
+            'title' => 'Ticket',
+            'description' => 'Test',
+        ]);
+
+        $response = $this
+            ->actingAs($agent)
+            ->patch(route('tickets.assignee.update', $ticket), [
+                'assigned_to_id' => $agent->id,
+            ]);
+
+        $response->assertRedirect(route('tickets.show', $ticket));
+
+        Notification::assertNothingSent();
     }
 }

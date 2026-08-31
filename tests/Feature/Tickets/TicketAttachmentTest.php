@@ -9,6 +9,8 @@ use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
 use Illuminate\Support\Facades\Storage;
 use Tests\TestCase;
+use App\Notifications\TicketAttachmentAddedNotification;
+use Illuminate\Support\Facades\Notification;
 
 class TicketAttachmentTest extends TestCase
 {
@@ -335,5 +337,121 @@ class TicketAttachmentTest extends TestCase
             ]));
 
         $response->assertNotFound();
+    }
+
+    public function test_agent_uploading_attachment_notifies_requester_but_not_agent(): void
+    {
+        Notification::fake();
+        Storage::fake('local');
+
+        $requester = User::factory()->create([
+            'role' => UserRole::Requester,
+        ]);
+
+        $agent = User::factory()->create([
+            'role' => UserRole::Agent,
+        ]);
+
+        $ticket = Ticket::create([
+            'created_by_id' => $requester->id,
+            'assigned_to_id' => $agent->id,
+            'title' => 'Attachment ticket',
+            'description' => 'Test',
+        ]);
+
+        $file = UploadedFile::fake()->create(
+            'report.pdf',
+            100,
+            'application/pdf'
+        );
+
+        $response = $this
+            ->actingAs($agent)
+            ->post(route('tickets.attachments.store', $ticket), [
+                'attachment' => $file,
+            ]);
+
+        $response->assertRedirect(route('tickets.show', $ticket));
+
+        $attachment = $ticket->attachments()->firstOrFail();
+
+        Notification::assertSentTo(
+            $requester,
+            TicketAttachmentAddedNotification::class,
+            function (TicketAttachmentAddedNotification $notification) use (
+                $ticket,
+                $attachment,
+                $requester
+            ) {
+                $data = $notification->toArray($requester);
+
+                return $data['ticket_id'] === $ticket->id
+                    && $data['attachment_id'] === $attachment->id
+                    && $data['original_name'] === 'report.pdf';
+            }
+        );
+
+        Notification::assertNotSentTo(
+            $agent,
+            TicketAttachmentAddedNotification::class
+        );
+    }
+
+    public function test_requester_uploading_attachment_notifies_assignee_but_not_requester(): void
+    {
+        Notification::fake();
+        Storage::fake('local');
+
+        $requester = User::factory()->create([
+            'role' => UserRole::Requester,
+        ]);
+
+        $agent = User::factory()->create([
+            'role' => UserRole::Agent,
+        ]);
+
+        $ticket = Ticket::create([
+            'created_by_id' => $requester->id,
+            'assigned_to_id' => $agent->id,
+            'title' => 'Attachment ticket',
+            'description' => 'Test',
+        ]);
+
+        $file = UploadedFile::fake()->create(
+            'document.txt',
+            10,
+            'text/plain'
+        );
+
+        $response = $this
+            ->actingAs($requester)
+            ->post(route('tickets.attachments.store', $ticket), [
+                'attachment' => $file,
+            ]);
+
+        $response->assertRedirect(route('tickets.show', $ticket));
+
+        $attachment = $ticket->attachments()->firstOrFail();
+
+        Notification::assertSentTo(
+            $agent,
+            TicketAttachmentAddedNotification::class,
+            function (TicketAttachmentAddedNotification $notification) use (
+                $ticket,
+                $attachment,
+                $agent
+            ) {
+                $data = $notification->toArray($agent);
+
+                return $data['ticket_id'] === $ticket->id
+                    && $data['attachment_id'] === $attachment->id
+                    && $data['original_name'] === 'document.txt';
+            }
+        );
+
+        Notification::assertNotSentTo(
+            $requester,
+            TicketAttachmentAddedNotification::class
+        );
     }
 }
