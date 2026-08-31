@@ -70,3 +70,44 @@ password
 Admin:
 admin@example.com
 password
+
+## Mailtrap email testing
+
+The project uses Mailtrap for local email testing.
+
+Configure the following variables in `.env`:
+
+```env
+MAIL_MAILER=smtp
+MAIL_HOST=sandbox.smtp.mailtrap.io
+MAIL_PORT=2525
+MAIL_USERNAME=your_mailtrap_username
+MAIL_PASSWORD=your_mailtrap_password
+MAIL_FROM_ADDRESS=service-desk@example.com
+MAIL_FROM_NAME="${APP_NAME}"
+
+APP_URL=http://localhost
+QUEUE_CONNECTION=database
+```
+
+Do not commit real Mailtrap credentials.
+
+Clear cached configuration after changing mail settings:
+
+```bash
+./vendor/bin/sail artisan config:clear
+```
+
+Run the queue worker:
+
+```bash
+./vendor/bin/sail artisan queue:work
+```
+
+Queued ticket notifications can then be inspected in the Mailtrap Sandbox inbox.
+
+Mailtrap Sandbox may rate-limit emails when several queued notifications are processed at once.
+For manual testing, process jobs individually if needed:
+
+```bash
+./vendor/bin/sail artisan queue:work --once
