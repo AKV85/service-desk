@@ -29,21 +29,21 @@ class TicketFactory extends Factory
 
     public function assignedTo(User $user): static
     {
-        return $this->state(fn(array $attributes) => [
+        return $this->state(fn (array $attributes) => [
             'assigned_to_id' => $user->id,
         ]);
     }
 
     public function inProgress(): static
     {
-        return $this->state(fn(array $attributes) => [
+        return $this->state(fn (array $attributes) => [
             'status' => TicketStatus::InProgress,
         ]);
     }
 
     public function resolved(): static
     {
-        return $this->state(fn(array $attributes) => [
+        return $this->state(fn (array $attributes) => [
             'status' => TicketStatus::Resolved,
             'resolved_at' => now(),
         ]);
@@ -51,7 +51,7 @@ class TicketFactory extends Factory
 
     public function closed(): static
     {
-        return $this->state(fn(array $attributes) => [
+        return $this->state(fn (array $attributes) => [
             'status' => TicketStatus::Closed,
             'resolved_at' => now()->subHour(),
             'closed_at' => now(),
@@ -60,21 +60,21 @@ class TicketFactory extends Factory
 
     public function lowPriority(): static
     {
-        return $this->state(fn(array $attributes) => [
+        return $this->state(fn (array $attributes) => [
             'priority' => TicketPriority::Low,
         ]);
     }
 
     public function highPriority(): static
     {
-        return $this->state(fn(array $attributes) => [
+        return $this->state(fn (array $attributes) => [
             'priority' => TicketPriority::High,
         ]);
     }
 
     public function urgent(): static
     {
-        return $this->state(fn(array $attributes) => [
+        return $this->state(fn (array $attributes) => [
             'priority' => TicketPriority::Urgent,
         ]);
     }

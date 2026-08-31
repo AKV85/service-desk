@@ -29,11 +29,11 @@ class TicketCommentAddedNotification extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('New comment: ' . $this->ticket->title)
-            ->greeting('Hello ' . $notifiable->name . ',')
+            ->subject('New comment: '.$this->ticket->title)
+            ->greeting('Hello '.$notifiable->name.',')
             ->line('A new comment has been added to a ticket.')
-            ->line('Ticket: ' . $this->ticket->title)
-            ->line('Comment by: ' . $this->comment->user->name)
+            ->line('Ticket: '.$this->ticket->title)
+            ->line('Comment by: '.$this->comment->user->name)
             ->action(
                 'View ticket',
                 route('tickets.show', $this->ticket)

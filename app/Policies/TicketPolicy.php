@@ -2,6 +2,7 @@
 
 namespace App\Policies;
 
+use App\Enums\TicketStatus;
 use App\Enums\UserRole;
 use App\Models\Ticket;
 use App\Models\User;
@@ -10,10 +11,7 @@ class TicketPolicy
 {
     public function viewAny(User $user): bool
     {
-        return in_array($user->role, [
-            UserRole::Agent,
-            UserRole::Admin,
-        ], true);
+        return true;
     }
 
     public function view(User $user, Ticket $ticket): bool
@@ -65,7 +63,7 @@ class TicketPolicy
     {
         return match ($user->role) {
             UserRole::Requester => $ticket->created_by_id === $user->id
-                && $ticket->status === \App\Enums\TicketStatus::Resolved,
+                && $ticket->status === TicketStatus::Resolved,
 
             UserRole::Agent,
             UserRole::Admin => true,

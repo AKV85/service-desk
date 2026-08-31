@@ -6,10 +6,11 @@ use App\Enums\TicketPriority;
 use App\Enums\TicketStatus;
 use App\Models\Ticket;
 use App\Models\User;
-use Illuminate\Validation\ValidationException;
 use App\Notifications\TicketAssignedNotification;
-use App\Notifications\TicketStatusChangedNotification;
 use App\Notifications\TicketPriorityChangedNotification;
+use App\Notifications\TicketStatusChangedNotification;
+use Illuminate\Support\Facades\DB;
+use Illuminate\Validation\ValidationException;
 
 class TicketWorkflowService
 {
@@ -30,45 +31,47 @@ class TicketWorkflowService
             ]);
         }
 
-        $ticket->status = $newStatus;
+        DB::transaction(function () use ($ticket, $newStatus, $user, $oldStatus): void {
+            $ticket->status = $newStatus;
 
-        if ($newStatus === TicketStatus::Resolved) {
-            $ticket->resolved_at = now();
-        }
+            if ($newStatus === TicketStatus::Resolved) {
+                $ticket->resolved_at = now();
+            }
 
-        if (
-            $oldStatus === TicketStatus::Resolved
-            && $newStatus === TicketStatus::InProgress
-        ) {
-            $ticket->resolved_at = null;
-        }
+            if (
+                $oldStatus === TicketStatus::Resolved
+                && $newStatus === TicketStatus::InProgress
+            ) {
+                $ticket->resolved_at = null;
+            }
 
-        if ($newStatus === TicketStatus::Closed) {
-            $ticket->closed_at = now();
-        }
+            if ($newStatus === TicketStatus::Closed) {
+                $ticket->closed_at = now();
+            }
 
-        $ticket->save();
+            $ticket->save();
 
-        $ticket->history()->create([
-            'user_id' => $user->id,
-            'action' => 'status_changed',
-            'old_values' => [
-                'status' => $oldStatus->value,
-            ],
-            'new_values' => [
-                'status' => $newStatus->value,
-            ],
-        ]);
+            $ticket->history()->create([
+                'user_id' => $user->id,
+                'action' => 'status_changed',
+                'old_values' => [
+                    'status' => $oldStatus->value,
+                ],
+                'new_values' => [
+                    'status' => $newStatus->value,
+                ],
+            ]);
 
-        if ($ticket->created_by_id !== $user->id) {
-            $ticket->creator->notify(
-                new TicketStatusChangedNotification(
-                    $ticket,
-                    $oldStatus,
-                    $newStatus
-                )
-            );
-        }
+            if ($ticket->created_by_id !== $user->id) {
+                $ticket->creator->notify(
+                    new TicketStatusChangedNotification(
+                        $ticket,
+                        $oldStatus,
+                        $newStatus
+                    )
+                );
+            }
+        });
     }
 
     public function changePriority(
@@ -82,29 +85,31 @@ class TicketWorkflowService
             return;
         }
 
-        $ticket->priority = $newPriority;
-        $ticket->save();
+        DB::transaction(function () use ($ticket, $newPriority, $user, $oldPriority): void {
+            $ticket->priority = $newPriority;
+            $ticket->save();
 
-        $ticket->history()->create([
-            'user_id' => $user->id,
-            'action' => 'priority_changed',
-            'old_values' => [
-                'priority' => $oldPriority->value,
-            ],
-            'new_values' => [
-                'priority' => $newPriority->value,
-            ],
-        ]);
+            $ticket->history()->create([
+                'user_id' => $user->id,
+                'action' => 'priority_changed',
+                'old_values' => [
+                    'priority' => $oldPriority->value,
+                ],
+                'new_values' => [
+                    'priority' => $newPriority->value,
+                ],
+            ]);
 
-        if ($ticket->created_by_id !== $user->id) {
-            $ticket->creator->notify(
-                new TicketPriorityChangedNotification(
-                    $ticket,
-                    $oldPriority,
-                    $newPriority
-                )
-            );
-        }
+            if ($ticket->created_by_id !== $user->id) {
+                $ticket->creator->notify(
+                    new TicketPriorityChangedNotification(
+                        $ticket,
+                        $oldPriority,
+                        $newPriority
+                    )
+                );
+            }
+        });
     }
 
     public function assign(
@@ -119,24 +124,32 @@ class TicketWorkflowService
             return;
         }
 
-        $ticket->assigned_to_id = $newAssigneeId;
-        $ticket->save();
+        DB::transaction(function () use (
+            $ticket,
+            $assignee,
+            $user,
+            $oldAssigneeId,
+            $newAssigneeId
+        ): void {
+            $ticket->assigned_to_id = $newAssigneeId;
+            $ticket->save();
 
-        $ticket->history()->create([
-            'user_id' => $user->id,
-            'action' => 'assignee_changed',
-            'old_values' => [
-                'assigned_to_id' => $oldAssigneeId,
-            ],
-            'new_values' => [
-                'assigned_to_id' => $newAssigneeId,
-            ],
-        ]);
+            $ticket->history()->create([
+                'user_id' => $user->id,
+                'action' => 'assignee_changed',
+                'old_values' => [
+                    'assigned_to_id' => $oldAssigneeId,
+                ],
+                'new_values' => [
+                    'assigned_to_id' => $newAssigneeId,
+                ],
+            ]);
 
-        if ($assignee !== null) {
-            $assignee->notify(
-                new TicketAssignedNotification($ticket)
-            );
-        }
+            if ($assignee !== null) {
+                $assignee->notify(
+                    new TicketAssignedNotification($ticket)
+                );
+            }
+        });
     }
 }

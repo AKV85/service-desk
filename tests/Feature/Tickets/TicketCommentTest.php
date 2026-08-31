@@ -6,10 +6,10 @@ use App\Enums\UserRole;
 use App\Models\Ticket;
 use App\Models\TicketComment;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
 use App\Notifications\TicketCommentAddedNotification;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
+use Tests\TestCase;
 
 class TicketCommentTest extends TestCase
 {

@@ -54,7 +54,7 @@ class TicketNotificationService
             $ticket->assignee,
         ])
             ->filter()
-            ->reject(fn(User $user) => $user->id === $actor->id)
+            ->reject(fn (User $user) => $user->id === $actor->id)
             ->unique('id')
             ->values();
     }

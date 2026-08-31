@@ -4,13 +4,16 @@ namespace Tests\Feature\Tickets;
 
 use App\Enums\UserRole;
 use App\Models\Ticket;
+use App\Models\TicketAttachment;
 use App\Models\User;
+use App\Notifications\TicketAttachmentAddedNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
-use Tests\TestCase;
-use App\Notifications\TicketAttachmentAddedNotification;
+use Illuminate\Support\Facades\Event;
 use Illuminate\Support\Facades\Notification;
+use Illuminate\Support\Facades\Storage;
+use RuntimeException;
+use Tests\TestCase;
 
 class TicketAttachmentTest extends TestCase
 {
@@ -217,7 +220,7 @@ class TicketAttachmentTest extends TestCase
         );
 
         $path = $file->store(
-            'ticket-attachments/' . $ticket->id,
+            'ticket-attachments/'.$ticket->id,
             'local'
         );
 
@@ -266,7 +269,7 @@ class TicketAttachmentTest extends TestCase
         );
 
         $path = $file->store(
-            'ticket-attachments/' . $ticket->id,
+            'ticket-attachments/'.$ticket->id,
             'local'
         );
 
@@ -317,7 +320,7 @@ class TicketAttachmentTest extends TestCase
         );
 
         $path = $file->store(
-            'ticket-attachments/' . $firstTicket->id,
+            'ticket-attachments/'.$firstTicket->id,
             'local'
         );
 
@@ -452,6 +455,61 @@ class TicketAttachmentTest extends TestCase
         Notification::assertNotSentTo(
             $requester,
             TicketAttachmentAddedNotification::class
+        );
+    }
+
+    public function test_uploaded_file_is_deleted_when_attachment_record_creation_fails(): void
+    {
+        Storage::fake('local');
+
+        $requester = User::factory()->create([
+            'role' => UserRole::Requester,
+        ]);
+
+        $ticket = Ticket::create([
+            'created_by_id' => $requester->id,
+            'title' => 'Attachment ticket',
+            'description' => 'Test',
+        ]);
+
+        $file = UploadedFile::fake()->create(
+            'error-log.txt',
+            100,
+            'text/plain'
+        );
+
+        $event = 'eloquent.creating: '.TicketAttachment::class;
+
+        Event::listen($event, function (): void {
+            throw new RuntimeException('Simulated attachment database failure.');
+        });
+
+        $this->withoutExceptionHandling();
+
+        try {
+            $this
+                ->actingAs($requester)
+                ->post(route('tickets.attachments.store', $ticket), [
+                    'attachment' => $file,
+                ]);
+
+            $this->fail('Expected attachment creation to fail.');
+        } catch (RuntimeException $exception) {
+            $this->assertSame(
+                'Simulated attachment database failure.',
+                $exception->getMessage()
+            );
+        } finally {
+            Event::forget($event);
+        }
+
+        $this->assertDatabaseCount('ticket_attachments', 0);
+
+        $this->assertSame(
+            [],
+            Storage::disk('local')->allFiles(
+                'ticket-attachments/'.$ticket->id
+            )
         );
     }
 }

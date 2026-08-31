@@ -10,18 +10,11 @@ class TicketStatusTransitionService
         TicketStatus $from,
         TicketStatus $to
     ): bool {
-        return match ($from) {
-            TicketStatus::New => $to === TicketStatus::InProgress,
-
-            TicketStatus::InProgress => $to === TicketStatus::Resolved,
-
-            TicketStatus::Resolved => in_array($to, [
-                TicketStatus::InProgress,
-                TicketStatus::Closed,
-            ], true),
-
-            TicketStatus::Closed => false,
-        };
+        return in_array(
+            $to,
+            $this->allowedTransitions($from),
+            true
+        );
     }
 
     public function allowedTransitions(TicketStatus $from): array

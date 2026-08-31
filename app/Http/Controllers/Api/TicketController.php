@@ -2,23 +2,23 @@
 
 namespace App\Http\Controllers\Api;
 
-use App\Enums\UserRole;
-use App\Http\Controllers\Controller;
-use App\Models\Ticket;
-use Illuminate\Http\JsonResponse;
-use Illuminate\Http\Request;
-use App\Http\Requests\StoreTicketRequest;
-use App\Notifications\TicketCreatedNotification;
-use App\Http\Requests\UpdateTicketRequest;
 use App\Enums\TicketPriority;
 use App\Enums\TicketStatus;
+use App\Enums\UserRole;
+use App\Http\Controllers\Controller;
 use App\Http\Requests\AssignTicketRequest;
 use App\Http\Requests\ChangeTicketPriorityRequest;
 use App\Http\Requests\ChangeTicketStatusRequest;
-use App\Models\User;
-use App\Services\TicketWorkflowService;
 use App\Http\Requests\StoreTicketCommentRequest;
+use App\Http\Requests\StoreTicketRequest;
+use App\Http\Requests\UpdateTicketRequest;
+use App\Models\Ticket;
+use App\Models\User;
+use App\Notifications\TicketCreatedNotification;
 use App\Services\TicketNotificationService;
+use App\Services\TicketWorkflowService;
+use Illuminate\Http\JsonResponse;
+use Illuminate\Http\Request;
 
 class TicketController extends Controller
 {

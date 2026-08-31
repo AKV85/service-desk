@@ -27,10 +27,10 @@ class TicketCreatedNotification extends Notification implements ShouldQueue
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('Ticket created: ' . $this->ticket->title)
-            ->greeting('Hello ' . $notifiable->name . ',')
+            ->subject('Ticket created: '.$this->ticket->title)
+            ->greeting('Hello '.$notifiable->name.',')
             ->line('Your ticket has been created successfully.')
-            ->line('Ticket: ' . $this->ticket->title)
+            ->line('Ticket: '.$this->ticket->title)
             ->action(
                 'View ticket',
                 route('tickets.show', $this->ticket)

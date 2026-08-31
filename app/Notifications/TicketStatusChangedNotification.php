@@ -17,7 +17,9 @@ class TicketStatusChangedNotification extends Notification implements ShouldQueu
         private readonly Ticket $ticket,
         private readonly TicketStatus $oldStatus,
         private readonly TicketStatus $newStatus
-    ) {}
+    ) {
+        $this->afterCommit();
+    }
 
     /**
      * @return array<int, string>
@@ -30,15 +32,15 @@ class TicketStatusChangedNotification extends Notification implements ShouldQueu
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('Ticket status changed: ' . $this->ticket->title)
-            ->greeting('Hello ' . $notifiable->name . ',')
+            ->subject('Ticket status changed: '.$this->ticket->title)
+            ->greeting('Hello '.$notifiable->name.',')
             ->line('The status of your ticket has changed.')
-            ->line('Ticket: ' . $this->ticket->title)
+            ->line('Ticket: '.$this->ticket->title)
             ->line(
                 'Status: '
-                    . $this->oldStatus->value
-                    . ' → '
-                    . $this->newStatus->value
+                    .$this->oldStatus->value
+                    .' → '
+                    .$this->newStatus->value
             )
             ->action(
                 'View ticket',

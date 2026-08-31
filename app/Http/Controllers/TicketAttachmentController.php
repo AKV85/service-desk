@@ -4,11 +4,12 @@ namespace App\Http\Controllers;
 
 use App\Http\Requests\StoreTicketAttachmentRequest;
 use App\Models\Ticket;
-use Illuminate\Http\RedirectResponse;
 use App\Models\TicketAttachment;
+use App\Services\TicketNotificationService;
+use Illuminate\Http\RedirectResponse;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
-use App\Services\TicketNotificationService;
+use Throwable;
 
 class TicketAttachmentController extends Controller
 {
@@ -20,17 +21,23 @@ class TicketAttachmentController extends Controller
         $file = $request->file('attachment');
 
         $path = $file->store(
-            'ticket-attachments/' . $ticket->id,
+            'ticket-attachments/'.$ticket->id,
             'local'
         );
 
-        $attachment = $ticket->attachments()->create([
-            'user_id' => $request->user()->id,
-            'original_name' => $file->getClientOriginalName(),
-            'path' => $path,
-            'mime_type' => $file->getMimeType(),
-            'size' => $file->getSize(),
-        ]);
+        try {
+            $attachment = $ticket->attachments()->create([
+                'user_id' => $request->user()->id,
+                'original_name' => $file->getClientOriginalName(),
+                'path' => $path,
+                'mime_type' => $file->getMimeType(),
+                'size' => $file->getSize(),
+            ]);
+        } catch (Throwable $exception) {
+            Storage::disk('local')->delete($path);
+
+            throw $exception;
+        }
 
         $notificationService->attachmentAdded(
             $ticket,

@@ -2,23 +2,23 @@
 
 namespace App\Http\Controllers;
 
-use App\Http\Requests\StoreTicketRequest;
-use App\Models\Ticket;
-use Illuminate\Http\RedirectResponse;
-use Illuminate\View\View;
-use App\Enums\UserRole;
-use App\Http\Requests\UpdateTicketRequest;
 use App\Enums\TicketPriority;
 use App\Enums\TicketStatus;
+use App\Enums\UserRole;
+use App\Http\Requests\AssignTicketRequest;
 use App\Http\Requests\ChangeTicketPriorityRequest;
 use App\Http\Requests\ChangeTicketStatusRequest;
-use App\Services\TicketWorkflowService;
-use App\Http\Requests\AssignTicketRequest;
-use App\Models\User;
 use App\Http\Requests\StoreTicketCommentRequest;
+use App\Http\Requests\StoreTicketRequest;
 use App\Http\Requests\TicketIndexRequest;
+use App\Http\Requests\UpdateTicketRequest;
+use App\Models\Ticket;
+use App\Models\User;
 use App\Notifications\TicketCreatedNotification;
 use App\Services\TicketNotificationService;
+use App\Services\TicketWorkflowService;
+use Illuminate\Http\RedirectResponse;
+use Illuminate\View\View;
 
 class TicketController extends Controller
 {
@@ -38,6 +38,7 @@ class TicketController extends Controller
         $request->user()->notify(
             new TicketCreatedNotification($ticket)
         );
+
         return redirect()
             ->route('tickets.show', $ticket)
             ->with('success', 'Ticket created successfully.');
@@ -48,14 +49,14 @@ class TicketController extends Controller
         $this->authorize('view', $ticket);
 
         $ticket->load([
-            'comments' => fn($query) => $query
+            'comments' => fn ($query) => $query
                 ->with('user')
                 ->oldest(),
 
-            'history' => fn($query) => $query
+            'history' => fn ($query) => $query
                 ->with('user')
                 ->oldest(),
-            'attachments' => fn($query) => $query
+            'attachments' => fn ($query) => $query
                 ->with('user')
                 ->latest(),
         ]);
@@ -114,9 +115,9 @@ class TicketController extends Controller
         $agents = $user->role === UserRole::Requester
             ? collect()
             : User::query()
-            ->where('role', UserRole::Agent)
-            ->orderBy('name')
-            ->get();
+                ->where('role', UserRole::Agent)
+                ->orderBy('name')
+                ->get();
 
         return view('tickets.index', compact('tickets', 'agents'));
     }
