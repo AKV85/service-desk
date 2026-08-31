@@ -21,15 +21,15 @@ No Critical findings were identified.
 
 ### Important
 
-1. REST API authentication strategy is incomplete.
+1. ~~REST API authentication strategy is incomplete.~~ **Resolved in SD-31.**
 2. The PHP requirement declared in `composer.json` does not match the currently locked dependency set.
 3. Public demo accounts use known credentials, including an Admin account.
 4. Production HTTPS, session cookie, logging, mail, and proxy configuration must be explicitly configured for the deployment environment.
 
 ### Nice to have
 
-1. The private local filesystem disk exposes Laravel signed file-serving routes that are not currently used by the application.
-2. `User.role` is mass assignable even though no exploitable HTTP mass-assignment path was identified.
+1. ~~The private local filesystem disk exposes Laravel signed file-serving routes that are not currently used by the application.~~ **Resolved in SD-31.**
+2. ~~`User.role` is mass assignable even though no exploitable HTTP mass-assignment path was identified.~~ **Resolved in SD-31.**
 3. `laravel/tinker` is installed as a production dependency even though it is not required for normal HTTP application operation.
 
 ---
@@ -37,29 +37,83 @@ No Critical findings were identified.
 ## 1. REST API Authentication
 
 **Severity:** Important  
-**Status:** Confirmed - fix in SD-31
+**Status:** Resolved in SD-31
 
-The REST API routes are registered under the standard Laravel `api` middleware group and protected using the default `auth` middleware.
+### Original finding
 
-The default authentication guard is the session-based `web` guard.
+The REST API routes were registered under the standard Laravel `api` middleware group and protected using the default `auth` middleware.
 
-The standard `api` middleware group does not start a session. The application does not enable Laravel stateful API middleware and Laravel Sanctum is not currently installed.
+The default authentication guard was the session-based `web` guard.
 
-Existing API feature tests use `actingAs()`. These tests correctly verify authorization after a user has been authenticated, but they do not reproduce the authentication flow of a real HTTP API client.
+The standard `api` middleware group does not start a session. The application did not enable Laravel stateful API middleware and Laravel Sanctum was not installed.
 
-### Decision
+Existing API feature tests used `actingAs()`. These tests correctly verified authorization after a user had been authenticated, but they did not reproduce the authentication flow of a real HTTP API client.
 
-Introduce an explicit API authentication strategy.
+### Resolution
 
-The planned approach is to use Laravel Sanctum personal access tokens and protect API routes with `auth:sanctum`.
+Laravel Sanctum was added to provide explicit API authentication using personal access tokens.
 
-The web application will continue to use Fortify and session-based authentication.
+The web application continues to use Laravel Fortify and session-based authentication.
 
-The API will use Bearer token authentication and remain stateless.
+The REST API uses stateless Bearer token authentication.
 
-### Target
+Protected API routes now use:
 
-SD-31.
+```php
+auth:sanctum
+```
+
+The application provides an API token creation endpoint:
+
+```text
+POST /api/tokens
+```
+
+Clients authenticate using their email address and password. After successful authentication, the endpoint creates a Sanctum personal access token and returns the plain-text token to the client.
+
+The token is then supplied to protected API requests using:
+
+```text
+Authorization: Bearer <token>
+```
+
+The application also provides an authenticated endpoint for revoking the currently used personal access token:
+
+```text
+DELETE /api/tokens/current
+```
+
+After the token is revoked, the same Bearer token can no longer authenticate protected API requests.
+
+### Token endpoint rate limiting
+
+Because the token creation endpoint accepts user credentials and is publicly accessible, explicit rate limiting was added.
+
+The token endpoint is limited to:
+
+```text
+5 attempts per minute
+```
+
+The rate-limit key is derived from the normalized email address and client IP address.
+
+This provides protection against repeated password attempts against the API authentication endpoint.
+
+### Verification
+
+Dedicated API authentication tests verify that:
+
+- valid credentials can create a personal access token,
+- invalid credentials do not create a token,
+- a Bearer token can authenticate a protected API request,
+- a protected API request without authentication returns `401`,
+- the current personal access token can be revoked,
+- a revoked token can no longer authenticate,
+- the token endpoint is rate limited.
+
+Existing API authorization tests also continue to pass after the authentication change.
+
+**Result:** Resolved.
 
 ---
 
@@ -179,7 +233,9 @@ SD-32.
 ## 5. Private Filesystem Serving
 
 **Severity:** Nice to have  
-**Status:** Reviewed
+**Status:** Resolved in SD-31
+
+### Original finding
 
 The default local filesystem disk points to:
 
@@ -187,50 +243,66 @@ The default local filesystem disk points to:
 storage/app/private
 ```
 
-and currently has Laravel file serving enabled with:
+and had Laravel file serving enabled with:
 
 ```php
 'serve' => true,
 ```
 
-Laravel therefore registers framework GET and PUT storage routes.
+Laravel therefore registered framework GET and PUT storage routes.
 
 The framework implementation was reviewed.
 
-Private file downloads require a valid relative signed URL. Uploads require both the upload flag and a valid relative signed URL. Path traversal attempts are handled and invalid production requests are hidden behind a 404 response.
+Private file downloads required a valid relative signed URL. Uploads required both the upload flag and a valid relative signed URL. Path traversal attempts were handled and invalid production requests were hidden behind a `404` response.
 
 No security vulnerability was identified in these framework routes.
 
-The application itself does not currently use `temporaryUrl()` or `temporaryUploadUrl()`.
+The application itself does not use `temporaryUrl()` or `temporaryUploadUrl()`.
 
 Ticket attachments are downloaded through the application's own authenticated and authorized attachment controller.
 
-### Decision
+### Resolution
 
-The framework file-serving routes appear unnecessary for the current application.
+Because the application does not use Laravel's framework file-serving functionality for the private local disk, the following configuration was removed:
 
-Removing `serve => true` may reduce unnecessary route surface, but this is not a deployment blocker.
+```php
+'serve' => true,
+```
+
+The unnecessary framework storage routes are therefore no longer registered.
+
+Attachment functionality was verified after the configuration change and continues to operate through the application's authorized attachment workflow.
+
+**Result:** Resolved as a defense-in-depth improvement.
 
 ---
 
 ## 6. User Role Mass Assignment
 
 **Severity:** Nice to have  
-**Status:** Reviewed - no exploitable path identified
+**Status:** Resolved in SD-31
 
-The `User` model currently includes `role` in its fillable attributes.
+### Original finding
+
+The `User` model included `role` in its fillable attributes.
 
 The application was searched for HTTP-accessible user creation, update, `fill()`, and similar mass-assignment operations.
 
-No application path was found that mass assigns user-controlled data into the `User` model.
+No application path was found that mass assigned user-controlled data into the `User` model.
 
 No privilege-escalation path through mass assignment was identified.
 
-### Decision
+### Resolution
 
-There is no current exploitable issue.
+Although no exploitable path was found, `role` is a security-sensitive attribute.
 
-Because `role` is a security-sensitive attribute, removing it from general mass assignment may still be considered as a defense-in-depth improvement.
+It was therefore removed from the model's general mass-assignable attributes as a defense-in-depth improvement.
+
+The model now allows general mass assignment only for the non-role user attributes required by the application.
+
+Existing API and application tests continue to pass after this change.
+
+**Result:** Resolved.
 
 ---
 
@@ -251,6 +323,10 @@ No immediate security change is required.
 
 Whether Tinker should remain installed in the production environment can be decided during deployment preparation.
 
+### Target
+
+SD-32.
+
 ---
 
 ## 8. Authentication and Login Protection
@@ -267,7 +343,9 @@ Passwords use Laravel's hashed model cast.
 
 Password and remember-token fields are hidden from model serialization.
 
-No actionable issue was identified during this review.
+The REST API now has its own explicit Sanctum-based Bearer token authentication flow and rate-limited token creation endpoint.
+
+No actionable authentication issue remains within the SD-31 scope.
 
 ---
 
@@ -293,6 +371,8 @@ Agent and Admin permissions are explicitly defined.
 
 Ticket deletion is restricted to Admin users.
 
+REST API routes use the same application authorization policies after Sanctum authentication.
+
 API authorization tests cover both allowed and forbidden operations.
 
 No authorization bypass was identified.
@@ -310,6 +390,8 @@ Session cookies are HTTP-only by default.
 SameSite defaults to `lax`.
 
 Secure-cookie enforcement depends on the production environment and must be enabled for the HTTPS public deployment.
+
+The REST API uses stateless Bearer token authentication and does not depend on the web session for API authentication.
 
 No application-specific CSRF bypass was identified.
 
@@ -330,6 +412,10 @@ Upload validation restricts accepted file types and limits attachment size.
 Physical attachment files are not exposed through a public storage symlink.
 
 The application also contains failure handling that removes a newly stored physical file if attachment metadata persistence fails.
+
+Unnecessary Laravel framework file-serving routes for the private local disk were disabled during SD-31.
+
+Attachment tests continue to pass after this configuration change.
 
 No Critical file-access issue was identified.
 
@@ -363,6 +449,10 @@ Mail credentials are supplied through environment variables and no hard-coded ma
 
 Production queue workers and production mail transport configuration must be established during deployment preparation.
 
+### Target
+
+SD-32.
+
 ---
 
 ## 14. Logging and Error Exposure
@@ -379,7 +469,15 @@ Laravel's default log channels use `LOG_LEVEL` from the environment, with `debug
 
 ### Decision
 
-Production deployment must explicitly select an appropriate log level and keep `APP_DEBUG=false`.
+Production deployment must explicitly select an appropriate log level and keep:
+
+```text
+APP_DEBUG=false
+```
+
+### Target
+
+SD-32.
 
 ---
 
@@ -418,6 +516,8 @@ No `public/storage` symlink currently exists.
 
 Private uploaded files and application logs are not tracked by Git.
 
+The unused Laravel private filesystem serving routes were disabled during SD-31.
+
 No unintended publicly accessible application data was identified.
 
 ---
@@ -442,19 +542,28 @@ The exact production deployment procedure will be documented as part of SD-32.
 
 ---
 
-## Remediation Plan
+## Remediation Completed in SD-31
 
-### SD-31
+The following changes were completed as part of the security review:
 
-Before closing the security review:
+1. Laravel Sanctum was installed and configured.
+2. The `User` model was configured with Sanctum API token support.
+3. The Sanctum personal access token database migration was added.
+4. Protected REST API routes were changed to `auth:sanctum`.
+5. A token creation endpoint was added for API clients.
+6. A current-token revocation endpoint was added.
+7. API token creation was protected by a five-attempts-per-minute rate limiter keyed by normalized email address and client IP.
+8. Dedicated tests were added for the real Bearer-token authentication flow.
+9. Existing REST API authorization tests were verified after the authentication change.
+10. `role` was removed from the `User` model's general mass-assignable attributes.
+11. Unused Laravel private filesystem serving was disabled.
+12. Attachment behavior was verified after disabling framework file serving.
+13. Laravel Pint was executed successfully.
+14. The complete automated test suite was executed successfully.
 
-1. Implement an explicit REST API authentication strategy.
-2. Add or update automated tests for real API authentication.
-3. Consider small defense-in-depth changes identified during the review where they do not unnecessarily expand scope.
-4. Run the relevant targeted tests.
-5. Run the complete automated test suite.
-6. Run Laravel Pint.
-7. Update this document with the final remediation status.
+---
+
+## Follow-up Work
 
 ### SD-32
 
@@ -471,7 +580,8 @@ Production deployment preparation must address:
 - queue worker configuration,
 - production Composer installation,
 - Laravel production optimization,
-- controlled demo seeding.
+- controlled demo seeding,
+- production decision regarding Laravel Tinker.
 
 ### SD-33
 
@@ -485,16 +595,36 @@ Public demo deployment must address:
 
 ---
 
-## Current Review Result
+## Final Review Result
 
-At the end of the audit phase:
+At the completion of SD-31:
 
 - **Critical findings:** 0
-- **Important findings:** 4
-- **Nice-to-have findings:** 3
+- **Important findings originally identified:** 4
+- **Important findings resolved in SD-31:** 1
+- **Important findings assigned to deployment follow-up:** 3
+- **Nice-to-have findings originally identified:** 3
+- **Nice-to-have findings resolved in SD-31:** 2
+- **Nice-to-have findings assigned to deployment follow-up:** 1
 
-No unresolved Critical security finding exists.
+No unresolved Critical security findings remain.
 
-The REST API authentication finding will be remediated as part of SD-31.
+The REST API authentication finding was resolved by implementing stateless Laravel Sanctum personal access token authentication with protected API routes, token revocation, rate limiting, and dedicated authentication tests.
 
-Deployment-specific Important findings are explicitly assigned to SD-32 and SD-33 before the public demo is released.
+The remaining Important findings are deployment-specific and are explicitly assigned to SD-32 and SD-33 before the public demo is released.
+
+Final automated verification:
+
+```text
+Tests: 177 passed (467 assertions)
+```
+
+Laravel Pint verification:
+
+```text
+93 files checked
+3 style issues fixed
+PASS
+```
+
+SD-31 therefore completes the application-level security and production configuration review. Remaining production-environment decisions are tracked as deployment preparation work rather than unresolved application security defects.
