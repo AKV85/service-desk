@@ -7,6 +7,9 @@ use App\Enums\TicketStatus;
 use App\Models\Ticket;
 use App\Models\User;
 use Illuminate\Validation\ValidationException;
+use App\Notifications\TicketAssignedNotification;
+use App\Notifications\TicketStatusChangedNotification;
+use App\Notifications\TicketPriorityChangedNotification;
 
 class TicketWorkflowService
 {
@@ -56,6 +59,16 @@ class TicketWorkflowService
                 'status' => $newStatus->value,
             ],
         ]);
+
+        if ($ticket->created_by_id !== $user->id) {
+            $ticket->creator->notify(
+                new TicketStatusChangedNotification(
+                    $ticket,
+                    $oldStatus,
+                    $newStatus
+                )
+            );
+        }
     }
 
     public function changePriority(
@@ -82,6 +95,16 @@ class TicketWorkflowService
                 'priority' => $newPriority->value,
             ],
         ]);
+
+        if ($ticket->created_by_id !== $user->id) {
+            $ticket->creator->notify(
+                new TicketPriorityChangedNotification(
+                    $ticket,
+                    $oldPriority,
+                    $newPriority
+                )
+            );
+        }
     }
 
     public function assign(
@@ -109,5 +132,11 @@ class TicketWorkflowService
                 'assigned_to_id' => $newAssigneeId,
             ],
         ]);
+
+        if ($assignee !== null) {
+            $assignee->notify(
+                new TicketAssignedNotification($ticket)
+            );
+        }
     }
 }
