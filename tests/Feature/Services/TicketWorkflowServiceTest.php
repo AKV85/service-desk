@@ -4,13 +4,14 @@ namespace Tests\Feature\Services;
 
 use App\Enums\TicketPriority;
 use App\Enums\TicketStatus;
+use App\Enums\UserRole;
 use App\Models\Ticket;
 use App\Models\User;
 use App\Services\TicketWorkflowService;
+use Illuminate\Database\QueryException;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Validation\ValidationException;
 use Tests\TestCase;
-use App\Enums\UserRole;
 
 class TicketWorkflowServiceTest extends TestCase
 {
@@ -300,5 +301,44 @@ class TicketWorkflowServiceTest extends TestCase
         $this->assertNull(
             $history->new_values['assigned_to_id']
         );
+    }
+
+    public function test_priority_change_is_rolled_back_when_history_creation_fails(): void
+    {
+        $creator = User::factory()->create();
+
+        $ticket = Ticket::create([
+            'created_by_id' => $creator->id,
+            'title' => 'Ticket',
+            'description' => 'Test',
+            'priority' => TicketPriority::Medium,
+        ]);
+
+        $invalidUser = new User;
+        $invalidUser->id = 999999;
+
+        try {
+            $this->service->changePriority(
+                $ticket,
+                TicketPriority::High,
+                $invalidUser
+            );
+
+            $this->fail('Expected history creation to fail.');
+        } catch (QueryException) {
+            // Expected: ticket_histories.user_id violates the foreign key.
+        }
+
+        $ticket->refresh();
+
+        $this->assertSame(
+            TicketPriority::Medium,
+            $ticket->priority
+        );
+
+        $this->assertDatabaseMissing('ticket_histories', [
+            'ticket_id' => $ticket->id,
+            'action' => 'priority_changed',
+        ]);
     }
 }

@@ -2,15 +2,15 @@
 
 namespace Tests\Feature\Api;
 
+use App\Enums\TicketPriority;
+use App\Enums\TicketStatus;
 use App\Enums\UserRole;
 use App\Models\Ticket;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
 use App\Notifications\TicketCreatedNotification;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
-use App\Enums\TicketPriority;
-use App\Enums\TicketStatus;
+use Tests\TestCase;
 
 class TicketApiTest extends TestCase
 {

@@ -14,7 +14,7 @@ class TicketStatusTransitionServiceTest extends TestCase
     {
         parent::setUp();
 
-        $this->service = new TicketStatusTransitionService();
+        $this->service = new TicketStatusTransitionService;
     }
 
     public function test_new_can_transition_to_in_progress(): void

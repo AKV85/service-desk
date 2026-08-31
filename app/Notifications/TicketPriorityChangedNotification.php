@@ -17,7 +17,9 @@ class TicketPriorityChangedNotification extends Notification implements ShouldQu
         private readonly Ticket $ticket,
         private readonly TicketPriority $oldPriority,
         private readonly TicketPriority $newPriority
-    ) {}
+    ) {
+        $this->afterCommit();
+    }
 
     /**
      * @return array<int, string>
@@ -30,15 +32,15 @@ class TicketPriorityChangedNotification extends Notification implements ShouldQu
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('Ticket priority changed: ' . $this->ticket->title)
-            ->greeting('Hello ' . $notifiable->name . ',')
+            ->subject('Ticket priority changed: '.$this->ticket->title)
+            ->greeting('Hello '.$notifiable->name.',')
             ->line('The priority of your ticket has changed.')
-            ->line('Ticket: ' . $this->ticket->title)
+            ->line('Ticket: '.$this->ticket->title)
             ->line(
                 'Priority: '
-                . $this->oldPriority->value
-                . ' → '
-                . $this->newPriority->value
+                    .$this->oldPriority->value
+                    .' → '
+                    .$this->newPriority->value
             )
             ->action(
                 'View ticket',

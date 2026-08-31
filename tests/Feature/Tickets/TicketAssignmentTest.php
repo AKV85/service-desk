@@ -5,10 +5,10 @@ namespace Tests\Feature\Tickets;
 use App\Enums\UserRole;
 use App\Models\Ticket;
 use App\Models\User;
-use Illuminate\Foundation\Testing\RefreshDatabase;
-use Tests\TestCase;
 use App\Notifications\TicketAssignedNotification;
+use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
+use Tests\TestCase;
 
 class TicketAssignmentTest extends TestCase
 {

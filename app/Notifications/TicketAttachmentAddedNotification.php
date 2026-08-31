@@ -29,11 +29,11 @@ class TicketAttachmentAddedNotification extends Notification implements ShouldQu
     public function toMail(object $notifiable): MailMessage
     {
         return (new MailMessage)
-            ->subject('New attachment: ' . $this->ticket->title)
-            ->greeting('Hello ' . $notifiable->name . ',')
+            ->subject('New attachment: '.$this->ticket->title)
+            ->greeting('Hello '.$notifiable->name.',')
             ->line('A new attachment has been added to a ticket.')
-            ->line('Ticket: ' . $this->ticket->title)
-            ->line('File: ' . $this->attachment->original_name)
+            ->line('Ticket: '.$this->ticket->title)
+            ->line('File: '.$this->attachment->original_name)
             ->action(
                 'View ticket',
                 route('tickets.show', $this->ticket)

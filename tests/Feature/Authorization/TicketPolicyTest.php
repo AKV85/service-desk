@@ -14,6 +14,33 @@ class TicketPolicyTest extends TestCase
 {
     use RefreshDatabase;
 
+    public function test_requester_can_view_ticket_collection(): void
+    {
+        $requester = User::factory()->requester()->create();
+
+        $this->assertTrue(
+            Gate::forUser($requester)->allows('viewAny', Ticket::class)
+        );
+    }
+
+    public function test_agent_can_view_ticket_collection(): void
+    {
+        $agent = User::factory()->agent()->create();
+
+        $this->assertTrue(
+            Gate::forUser($agent)->allows('viewAny', Ticket::class)
+        );
+    }
+
+    public function test_admin_can_view_ticket_collection(): void
+    {
+        $admin = User::factory()->admin()->create();
+
+        $this->assertTrue(
+            Gate::forUser($admin)->allows('viewAny', Ticket::class)
+        );
+    }
+
     public function test_requester_can_view_own_ticket(): void
     {
         $requester = User::factory()->create([

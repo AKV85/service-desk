@@ -6,7 +6,6 @@ use App\Enums\UserRole;
 use App\Models\Ticket;
 use App\Models\TicketComment;
 use App\Models\TicketHistory;
-use App\Models\User;
 use Database\Seeders\DatabaseSeeder;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
