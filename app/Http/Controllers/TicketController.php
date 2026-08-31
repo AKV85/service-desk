@@ -51,6 +51,9 @@ class TicketController extends Controller
             'history' => fn($query) => $query
                 ->with('user')
                 ->oldest(),
+            'attachments' => fn($query) => $query
+                ->with('user')
+                ->latest(),
         ]);
 
         $agents = collect();

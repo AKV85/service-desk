@@ -154,7 +154,60 @@
     </section>
     @endif
 </div>
+<section class="panel attachments-panel">
+    <h3>Attachments</h3>
 
+    @if ($ticket->attachments->isEmpty())
+    <p class="empty-state">No attachments yet.</p>
+    @else
+    <div class="attachment-list">
+        @foreach ($ticket->attachments as $attachment)
+        <div class="attachment-item">
+            <div>
+                <strong>
+                    <a href="{{ route('tickets.attachments.download', [$ticket, $attachment]) }}">
+                        {{ $attachment->original_name }}
+                    </a>
+                </strong>
+
+                <small>
+                    Uploaded by {{ $attachment->user->name }}
+                    · {{ $attachment->created_at?->format('Y-m-d H:i') }}
+                </small>
+            </div>
+
+            <span>
+                {{ number_format($attachment->size / 1024, 1) }} KB
+            </span>
+        </div>
+        @endforeach
+    </div>
+    @endif
+
+    <form
+        method="POST"
+        action="{{ route('tickets.attachments.store', $ticket) }}"
+        enctype="multipart/form-data">
+        @csrf
+
+        <div>
+            <label for="attachment">Add attachment</label>
+
+            <input
+                id="attachment"
+                type="file"
+                name="attachment"
+                accept=".jpg,.jpeg,.png,.pdf,.txt,.log"
+                required>
+        </div>
+
+        @error('attachment')
+        <p class="field-error">{{ $message }}</p>
+        @enderror
+
+        <button type="submit">Upload attachment</button>
+    </form>
+</section>
 <div class="ticket-content-grid">
     <section class="panel">
         <h3>Comments</h3>

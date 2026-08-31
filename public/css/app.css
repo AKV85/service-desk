@@ -413,3 +413,45 @@ ul {
 .form-actions a:hover {
     text-decoration: underline;
 }
+
+.attachments-panel {
+    margin-bottom: 24px;
+}
+
+.attachment-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    margin-bottom: 24px;
+}
+
+.attachment-item {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 20px;
+    padding: 12px 14px;
+    background: #f9fafb;
+    border-radius: 6px;
+}
+
+.attachment-item div {
+    min-width: 0;
+}
+
+.attachment-item strong {
+    display: block;
+    overflow-wrap: anywhere;
+}
+
+.attachment-item small {
+    display: block;
+    margin-top: 4px;
+    color: #6b7280;
+}
+
+.attachment-item > span {
+    color: #6b7280;
+    font-size: 13px;
+    white-space: nowrap;
+}

@@ -14,7 +14,7 @@ class Ticket extends Model
         'status' => 'new',
         'priority' => 'medium',
     ];
-    
+
     protected $fillable = [
         'created_by_id',
         'assigned_to_id',
@@ -54,5 +54,10 @@ class Ticket extends Model
     public function history(): HasMany
     {
         return $this->hasMany(TicketHistory::class);
+    }
+
+    public function attachments(): HasMany
+    {
+        return $this->hasMany(TicketAttachment::class);
     }
 }

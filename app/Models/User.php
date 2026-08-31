@@ -52,4 +52,9 @@ class User extends Authenticatable
     {
         return $this->hasMany(TicketHistory::class);
     }
+
+    public function ticketAttachments(): HasMany
+    {
+        return $this->hasMany(TicketAttachment::class);
+    }
 }
