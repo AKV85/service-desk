@@ -2,6 +2,7 @@
 
 namespace Tests\Feature\Services;
 
+use App\Jobs\CreateGitHubIssueJob;
 use App\Jobs\CreateJiraIssueJob;
 use App\Models\User;
 use App\Notifications\TicketCreatedNotification;
@@ -22,6 +23,7 @@ class TicketCreationServiceTest extends TestCase
 
         config([
             'integrations.jira.enabled' => false,
+            'integrations.github.enabled' => false,
         ]);
 
         $creator = User::factory()->create();
@@ -45,6 +47,7 @@ class TicketCreationServiceTest extends TestCase
         );
 
         Queue::assertNotPushed(CreateJiraIssueJob::class);
+        Queue::assertNotPushed(CreateGitHubIssueJob::class);
     }
 
     public function test_it_dispatches_jira_job_when_integration_is_enabled(): void
@@ -54,6 +57,7 @@ class TicketCreationServiceTest extends TestCase
 
         config([
             'integrations.jira.enabled' => true,
+            'integrations.github.enabled' => false,
         ]);
 
         $creator = User::factory()->create();
@@ -67,6 +71,67 @@ class TicketCreationServiceTest extends TestCase
         Queue::assertPushed(
             CreateJiraIssueJob::class,
             fn (CreateJiraIssueJob $job): bool => $job->ticketId === $ticket->id,
+        );
+    }
+
+    public function test_it_dispatches_github_job_when_integration_is_enabled(): void
+    {
+        Notification::fake();
+        Queue::fake();
+
+        config([
+            'integrations.jira.enabled' => false,
+            'integrations.github.enabled' => true,
+            'integrations.github.repository' => 'AKV85/service-desk',
+        ]);
+
+        $creator = User::factory()->create();
+
+        $ticket = app(TicketCreationService::class)->create(
+            creator: $creator,
+            title: 'Printer is broken',
+            description: 'The office printer stopped working.',
+        );
+
+        Queue::assertPushed(
+            CreateGitHubIssueJob::class,
+            function (CreateGitHubIssueJob $job) use ($ticket): bool {
+                return $job->ticketId === $ticket->id
+                    && $job->repository === 'AKV85/service-desk';
+            },
+        );
+
+        Queue::assertNotPushed(CreateJiraIssueJob::class);
+    }
+
+    public function test_it_dispatches_jira_and_github_jobs_independently(): void
+    {
+        Notification::fake();
+        Queue::fake();
+
+        config([
+            'integrations.jira.enabled' => true,
+            'integrations.github.enabled' => true,
+            'integrations.github.repository' => 'AKV85/service-desk',
+        ]);
+
+        $creator = User::factory()->create();
+
+        $ticket = app(TicketCreationService::class)->create(
+            creator: $creator,
+            title: 'Printer is broken',
+            description: 'The office printer stopped working.',
+        );
+
+        Queue::assertPushed(
+            CreateJiraIssueJob::class,
+            fn (CreateJiraIssueJob $job): bool => $job->ticketId === $ticket->id,
+        );
+
+        Queue::assertPushed(
+            CreateGitHubIssueJob::class,
+            fn (CreateGitHubIssueJob $job): bool => $job->ticketId === $ticket->id
+                && $job->repository === 'AKV85/service-desk',
         );
     }
 }
