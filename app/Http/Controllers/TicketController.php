@@ -14,7 +14,7 @@ use App\Http\Requests\TicketIndexRequest;
 use App\Http\Requests\UpdateTicketRequest;
 use App\Models\Ticket;
 use App\Models\User;
-use App\Notifications\TicketCreatedNotification;
+use App\Services\TicketCreationService;
 use App\Services\TicketNotificationService;
 use App\Services\TicketWorkflowService;
 use Illuminate\Http\RedirectResponse;
@@ -27,16 +27,14 @@ class TicketController extends Controller
         return view('tickets.create');
     }
 
-    public function store(StoreTicketRequest $request): RedirectResponse
-    {
-
-        $ticket = Ticket::create([
-            'created_by_id' => $request->user()->id,
-            'title' => $request->validated('title'),
-            'description' => $request->validated('description'),
-        ]);
-        $request->user()->notify(
-            new TicketCreatedNotification($ticket)
+    public function store(
+        StoreTicketRequest $request,
+        TicketCreationService $ticketCreationService
+    ): RedirectResponse {
+        $ticket = $ticketCreationService->create(
+            creator: $request->user(),
+            title: $request->validated('title'),
+            description: $request->validated('description'),
         );
 
         return redirect()
