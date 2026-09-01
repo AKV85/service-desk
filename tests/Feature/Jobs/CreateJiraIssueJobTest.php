@@ -6,8 +6,10 @@ use App\Contracts\Integrations\JiraClient;
 use App\Data\Integrations\Jira\CreateJiraIssueData;
 use App\Data\Integrations\Jira\JiraIssueData;
 use App\Enums\Integrations\IntegrationSyncStatus;
+use App\Exceptions\Integrations\IntegrationException;
 use App\Jobs\CreateJiraIssueJob;
 use App\Models\Ticket;
+use App\Services\Integrations\JiraIntegrationService;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Tests\TestCase;
 
@@ -49,7 +51,7 @@ class CreateJiraIssueJobTest extends TestCase
         $this->app->instance(JiraClient::class, $fakeClient);
 
         (new CreateJiraIssueJob($ticket->id))
-            ->handle(app(\App\Services\Integrations\JiraIntegrationService::class));
+            ->handle(app(JiraIntegrationService::class));
 
         $this->assertDatabaseHas('jira_issues', [
             'ticket_id' => $ticket->id,
@@ -64,7 +66,7 @@ class CreateJiraIssueJobTest extends TestCase
         $job = new CreateJiraIssueJob(999999);
 
         $job->handle(
-            app(\App\Services\Integrations\JiraIntegrationService::class),
+            app(JiraIntegrationService::class),
         );
 
         $this->assertDatabaseCount('jira_issues', 0);
@@ -79,7 +81,7 @@ class CreateJiraIssueJobTest extends TestCase
         $job = new CreateJiraIssueJob($ticket->id);
 
         $job->handle(
-            app(\App\Services\Integrations\JiraIntegrationService::class),
+            app(JiraIntegrationService::class),
         );
 
         $this->assertDatabaseCount('jira_issues', 0);
@@ -90,13 +92,13 @@ class CreateJiraIssueJobTest extends TestCase
         $ticket = Ticket::factory()->create();
 
         $service = \Mockery::mock(
-            \App\Services\Integrations\JiraIntegrationService::class,
+            JiraIntegrationService::class,
         );
 
         $service->shouldReceive('createIssueForTicket')
             ->once()
             ->andThrow(
-                new \App\Exceptions\Integrations\IntegrationException(
+                new IntegrationException(
                     message: 'Jira is temporarily unavailable.',
                     provider: 'jira',
                     operation: 'create_issue',
@@ -105,7 +107,7 @@ class CreateJiraIssueJobTest extends TestCase
             );
 
         $this->expectException(
-            \App\Exceptions\Integrations\IntegrationException::class,
+            IntegrationException::class,
         );
 
         (new CreateJiraIssueJob($ticket->id))->handle($service);
@@ -116,13 +118,13 @@ class CreateJiraIssueJobTest extends TestCase
         $ticket = Ticket::factory()->create();
 
         $service = \Mockery::mock(
-            \App\Services\Integrations\JiraIntegrationService::class,
+            JiraIntegrationService::class,
         );
 
         $service->shouldReceive('createIssueForTicket')
             ->once()
             ->andThrow(
-                new \App\Exceptions\Integrations\IntegrationException(
+                new IntegrationException(
                     message: 'Jira authentication failed.',
                     provider: 'jira',
                     operation: 'create_issue',
@@ -136,7 +138,7 @@ class CreateJiraIssueJobTest extends TestCase
         $job->shouldReceive('fail')
             ->once()
             ->with(\Mockery::type(
-                \App\Exceptions\Integrations\IntegrationException::class,
+                IntegrationException::class,
             ));
 
         $job->handle($service);

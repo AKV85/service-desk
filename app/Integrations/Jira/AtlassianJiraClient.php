@@ -5,9 +5,9 @@ namespace App\Integrations\Jira;
 use App\Contracts\Integrations\JiraClient;
 use App\Data\Integrations\Jira\CreateJiraIssueData;
 use App\Data\Integrations\Jira\JiraIssueData;
-use Illuminate\Http\Client\Factory as HttpFactory;
 use App\Exceptions\Integrations\IntegrationException;
 use Illuminate\Http\Client\ConnectionException;
+use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Http\Client\RequestException;
 
 final class AtlassianJiraClient implements JiraClient
@@ -31,7 +31,7 @@ final class AtlassianJiraClient implements JiraClient
                 ->connectTimeout(5)
                 ->timeout(15)
                 ->post(
-                    rtrim((string) config('integrations.jira.base_url'), '/') . '/rest/api/3/issue',
+                    rtrim((string) config('integrations.jira.base_url'), '/').'/rest/api/3/issue',
                     [
                         'fields' => [
                             'project' => [
@@ -84,8 +84,8 @@ final class AtlassianJiraClient implements JiraClient
             externalId: (string) $response->json('id'),
             issueKey: (string) $response->json('key'),
             url: rtrim((string) config('integrations.jira.base_url'), '/')
-                . '/browse/'
-                . $response->json('key'),
+                .'/browse/'
+                .$response->json('key'),
         );
     }
 
@@ -101,8 +101,8 @@ final class AtlassianJiraClient implements JiraClient
             ->acceptJson()
             ->get(
                 rtrim((string) config('integrations.jira.base_url'), '/')
-                    . '/rest/api/3/issue/'
-                    . $externalId,
+                    .'/rest/api/3/issue/'
+                    .$externalId,
             )
             ->throw();
 
@@ -110,8 +110,8 @@ final class AtlassianJiraClient implements JiraClient
             externalId: (string) $response->json('id'),
             issueKey: (string) $response->json('key'),
             url: rtrim((string) config('integrations.jira.base_url'), '/')
-                . '/browse/'
-                . $response->json('key'),
+                .'/browse/'
+                .$response->json('key'),
             status: $response->json('fields.status.name'),
             metadata: $response->json(),
         );

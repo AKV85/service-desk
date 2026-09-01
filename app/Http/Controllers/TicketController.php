@@ -47,14 +47,14 @@ class TicketController extends Controller
         $this->authorize('view', $ticket);
 
         $ticket->load([
-            'comments' => fn($query) => $query
+            'comments' => fn ($query) => $query
                 ->with('user')
                 ->oldest(),
 
-            'history' => fn($query) => $query
+            'history' => fn ($query) => $query
                 ->with('user')
                 ->oldest(),
-            'attachments' => fn($query) => $query
+            'attachments' => fn ($query) => $query
                 ->with('user')
                 ->latest(),
         ]);
@@ -113,9 +113,9 @@ class TicketController extends Controller
         $agents = $user->role === UserRole::Requester
             ? collect()
             : User::query()
-            ->where('role', UserRole::Agent)
-            ->orderBy('name')
-            ->get();
+                ->where('role', UserRole::Agent)
+                ->orderBy('name')
+                ->get();
 
         return view('tickets.index', compact('tickets', 'agents'));
     }

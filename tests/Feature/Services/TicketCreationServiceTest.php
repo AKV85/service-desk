@@ -66,7 +66,7 @@ class TicketCreationServiceTest extends TestCase
 
         Queue::assertPushed(
             CreateJiraIssueJob::class,
-            fn(CreateJiraIssueJob $job): bool => $job->ticketId === $ticket->id,
+            fn (CreateJiraIssueJob $job): bool => $job->ticketId === $ticket->id,
         );
     }
 }

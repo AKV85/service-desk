@@ -3,11 +3,11 @@
 namespace Tests\Feature\Integrations\Jira;
 
 use App\Data\Integrations\Jira\CreateJiraIssueData;
+use App\Exceptions\Integrations\IntegrationException;
 use App\Integrations\Jira\AtlassianJiraClient;
 use Illuminate\Http\Client\Request;
 use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
-use App\Exceptions\Integrations\IntegrationException;
 
 class AtlassianJiraClientTest extends TestCase
 {
@@ -57,7 +57,7 @@ class AtlassianJiraClientTest extends TestCase
                 && $request->url() === 'https://example.atlassian.net/rest/api/3/issue'
                 && $request->hasHeader(
                     'Authorization',
-                    'Basic ' . base64_encode('agent@example.com:test-api-token'),
+                    'Basic '.base64_encode('agent@example.com:test-api-token'),
                 )
                 && $request['fields']['project']['key'] === 'SD'
                 && $request['fields']['issuetype']['id'] === '10000'
@@ -111,7 +111,7 @@ class AtlassianJiraClientTest extends TestCase
                 && $request->url() === 'https://example.atlassian.net/rest/api/3/issue/10001'
                 && $request->hasHeader(
                     'Authorization',
-                    'Basic ' . base64_encode('agent@example.com:test-api-token'),
+                    'Basic '.base64_encode('agent@example.com:test-api-token'),
                 );
         });
     }
@@ -119,8 +119,7 @@ class AtlassianJiraClientTest extends TestCase
     public function test_create_issue_marks_server_error_as_retryable(): void
     {
         Http::fake([
-            'https://example.atlassian.net/rest/api/3/issue' =>
-            Http::response([], 503),
+            'https://example.atlassian.net/rest/api/3/issue' => Http::response([], 503),
         ]);
 
         try {
@@ -134,7 +133,7 @@ class AtlassianJiraClientTest extends TestCase
             );
 
             $this->fail('Expected Jira request to fail.');
-        } catch (\App\Exceptions\Integrations\IntegrationException $exception) {
+        } catch (IntegrationException $exception) {
             $this->assertTrue($exception->retryable);
             $this->assertSame('jira', $exception->provider);
             $this->assertSame('create_issue', $exception->operation);
@@ -144,8 +143,7 @@ class AtlassianJiraClientTest extends TestCase
     public function test_create_issue_marks_authentication_error_as_non_retryable(): void
     {
         Http::fake([
-            'https://example.atlassian.net/rest/api/3/issue' =>
-            Http::response([], 401),
+            'https://example.atlassian.net/rest/api/3/issue' => Http::response([], 401),
         ]);
 
         try {
@@ -159,7 +157,7 @@ class AtlassianJiraClientTest extends TestCase
             );
 
             $this->fail('Expected Jira request to fail.');
-        } catch (\App\Exceptions\Integrations\IntegrationException $exception) {
+        } catch (IntegrationException $exception) {
             $this->assertFalse($exception->retryable);
             $this->assertSame('jira', $exception->provider);
             $this->assertSame('create_issue', $exception->operation);

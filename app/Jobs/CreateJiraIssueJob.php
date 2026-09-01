@@ -9,7 +9,7 @@ use Illuminate\Contracts\Queue\ShouldBeUnique;
 use Illuminate\Contracts\Queue\ShouldQueue;
 use Illuminate\Foundation\Queue\Queueable;
 
-class CreateJiraIssueJob implements ShouldQueue, ShouldBeUnique
+class CreateJiraIssueJob implements ShouldBeUnique, ShouldQueue
 {
     use Queueable;
 
