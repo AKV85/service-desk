@@ -2,21 +2,17 @@
 
 namespace App\Providers;
 
+use App\Contracts\Integrations\JiraClient;
+use App\Integrations\Jira\AtlassianJiraClient;
 use Illuminate\Support\ServiceProvider;
 
 class AppServiceProvider extends ServiceProvider
 {
-    /**
-     * Register any application services.
-     */
     public function register(): void
     {
-        //
+        $this->app->bind(JiraClient::class, AtlassianJiraClient::class);
     }
 
-    /**
-     * Bootstrap any application services.
-     */
     public function boot(): void
     {
         //

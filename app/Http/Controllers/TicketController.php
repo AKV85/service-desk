@@ -14,7 +14,7 @@ use App\Http\Requests\TicketIndexRequest;
 use App\Http\Requests\UpdateTicketRequest;
 use App\Models\Ticket;
 use App\Models\User;
-use App\Notifications\TicketCreatedNotification;
+use App\Services\TicketCreationService;
 use App\Services\TicketNotificationService;
 use App\Services\TicketWorkflowService;
 use Illuminate\Http\RedirectResponse;
@@ -27,16 +27,14 @@ class TicketController extends Controller
         return view('tickets.create');
     }
 
-    public function store(StoreTicketRequest $request): RedirectResponse
-    {
-
-        $ticket = Ticket::create([
-            'created_by_id' => $request->user()->id,
-            'title' => $request->validated('title'),
-            'description' => $request->validated('description'),
-        ]);
-        $request->user()->notify(
-            new TicketCreatedNotification($ticket)
+    public function store(
+        StoreTicketRequest $request,
+        TicketCreationService $ticketCreationService
+    ): RedirectResponse {
+        $ticket = $ticketCreationService->create(
+            creator: $request->user(),
+            title: $request->validated('title'),
+            description: $request->validated('description'),
         );
 
         return redirect()
@@ -49,14 +47,14 @@ class TicketController extends Controller
         $this->authorize('view', $ticket);
 
         $ticket->load([
-            'comments' => fn ($query) => $query
+            'comments' => fn($query) => $query
                 ->with('user')
                 ->oldest(),
 
-            'history' => fn ($query) => $query
+            'history' => fn($query) => $query
                 ->with('user')
                 ->oldest(),
-            'attachments' => fn ($query) => $query
+            'attachments' => fn($query) => $query
                 ->with('user')
                 ->latest(),
         ]);
@@ -115,9 +113,9 @@ class TicketController extends Controller
         $agents = $user->role === UserRole::Requester
             ? collect()
             : User::query()
-                ->where('role', UserRole::Agent)
-                ->orderBy('name')
-                ->get();
+            ->where('role', UserRole::Agent)
+            ->orderBy('name')
+            ->get();
 
         return view('tickets.index', compact('tickets', 'agents'));
     }
