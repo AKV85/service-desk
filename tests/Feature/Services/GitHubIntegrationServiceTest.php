@@ -4,6 +4,7 @@ namespace Tests\Feature\Services;
 
 use App\Contracts\Integrations\GitHubClient;
 use App\Data\Integrations\GitHub\CreateGitHubIssueData;
+use App\Data\Integrations\GitHub\GitHubIssueWebhookData;
 use App\Data\Integrations\GitHub\GitHubResourceData;
 use App\Enums\Integrations\GitHubResourceType;
 use App\Enums\Integrations\IntegrationSyncStatus;
@@ -252,5 +253,151 @@ class GitHubIntegrationServiceTest extends TestCase
         }
 
         $this->assertDatabaseCount('github_resources', 0);
+    }
+
+    public function test_it_synchronizes_existing_github_issue_from_webhook(): void
+    {
+        $ticket = Ticket::factory()->create();
+
+        $resource = GitHubResource::create([
+            'ticket_id' => $ticket->id,
+            'resource_type' => GitHubResourceType::Issue,
+            'external_id' => '123456',
+            'repository' => 'AKV85/service-desk',
+            'resource_number' => 42,
+            'url' => 'https://github.com/AKV85/service-desk/issues/42',
+            'external_state' => 'open',
+            'external_updated_at' => new DateTimeImmutable('2026-09-01T12:00:00Z'),
+            'sync_status' => IntegrationSyncStatus::Synced,
+            'metadata' => [
+                'id' => 123456,
+                'created_by' => 'service-desk',
+            ],
+        ]);
+
+        $client = Mockery::mock(GitHubClient::class);
+
+        $client->shouldNotReceive('createIssue');
+
+        $service = new GitHubIntegrationService($client);
+
+        $result = $service->syncIssueFromWebhook(
+            new GitHubIssueWebhookData(
+                action: 'closed',
+                externalId: '123456',
+                repository: 'AKV85/service-desk',
+                resourceNumber: 42,
+                url: 'https://github.com/AKV85/service-desk/issues/42',
+                state: 'closed',
+                updatedAt: new DateTimeImmutable('2026-09-01T13:00:00Z'),
+                metadata: [
+                    'action' => 'closed',
+                ],
+            ),
+        );
+
+        $this->assertNotNull($result);
+        $this->assertTrue($result->is($resource));
+        $this->assertSame('closed', $result->external_state);
+        $this->assertSame(
+            IntegrationSyncStatus::Synced,
+            $result->sync_status,
+        );
+        $this->assertNull($result->last_error);
+        $this->assertNotNull($result->last_synced_at);
+        $this->assertSame(123456, $result->metadata['id']);
+        $this->assertSame(
+            'service-desk',
+            $result->metadata['created_by'],
+        );
+        $this->assertSame(
+            'closed',
+            $result->metadata['action'],
+        );
+
+        $this->assertDatabaseHas('github_resources', [
+            'id' => $resource->id,
+            'external_state' => 'closed',
+            'sync_status' => IntegrationSyncStatus::Synced->value,
+        ]);
+    }
+
+    public function test_it_ignores_webhook_for_unknown_github_issue(): void
+    {
+        $client = Mockery::mock(GitHubClient::class);
+
+        $client->shouldNotReceive('createIssue');
+
+        $service = new GitHubIntegrationService($client);
+
+        $result = $service->syncIssueFromWebhook(
+            new GitHubIssueWebhookData(
+                action: 'edited',
+                externalId: '999999',
+                repository: 'AKV85/service-desk',
+                resourceNumber: 999,
+                url: 'https://github.com/AKV85/service-desk/issues/999',
+                state: 'open',
+                updatedAt: new DateTimeImmutable('2026-09-01T13:00:00Z'),
+            ),
+        );
+
+        $this->assertNull($result);
+        $this->assertDatabaseCount('github_resources', 0);
+    }
+
+    public function test_older_webhook_does_not_overwrite_newer_github_state(): void
+    {
+        $ticket = Ticket::factory()->create();
+
+        $resource = GitHubResource::create([
+            'ticket_id' => $ticket->id,
+            'resource_type' => GitHubResourceType::Issue,
+            'external_id' => '123456',
+            'repository' => 'AKV85/service-desk',
+            'resource_number' => 42,
+            'url' => 'https://github.com/AKV85/service-desk/issues/42',
+            'external_state' => 'closed',
+            'external_updated_at' => new DateTimeImmutable('2026-09-01T14:00:00Z'),
+            'sync_status' => IntegrationSyncStatus::Synced,
+            'metadata' => [
+                'action' => 'closed',
+            ],
+        ]);
+
+        $client = Mockery::mock(GitHubClient::class);
+
+        $client->shouldNotReceive('createIssue');
+
+        $service = new GitHubIntegrationService($client);
+
+        $result = $service->syncIssueFromWebhook(
+            new GitHubIssueWebhookData(
+                action: 'reopened',
+                externalId: '123456',
+                repository: 'AKV85/service-desk',
+                resourceNumber: 42,
+                url: 'https://github.com/AKV85/service-desk/issues/42',
+                state: 'open',
+                updatedAt: new DateTimeImmutable('2026-09-01T13:00:00Z'),
+                metadata: [
+                    'action' => 'reopened',
+                ],
+            ),
+        );
+
+        $this->assertNotNull($result);
+
+        $resource->refresh();
+
+        $this->assertSame('closed', $resource->external_state);
+        $this->assertSame(
+            '2026-09-01 14:00:00',
+            $resource->external_updated_at->utc()->format('Y-m-d H:i:s'),
+        );
+        $this->assertSame(
+            ['action' => 'closed'],
+            $resource->metadata,
+        );
     }
 }
