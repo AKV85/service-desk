@@ -70,4 +70,9 @@ class Ticket extends Model
     {
         return $this->hasOne(JiraIssue::class);
     }
+
+    public function githubResources(): HasMany
+    {
+        return $this->hasMany(GitHubResource::class);
+    }
 }

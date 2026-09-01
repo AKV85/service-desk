@@ -2,6 +2,7 @@
 
 namespace App\Services;
 
+use App\Jobs\CreateGitHubIssueJob;
 use App\Jobs\CreateJiraIssueJob;
 use App\Models\Ticket;
 use App\Models\User;
@@ -29,6 +30,13 @@ class TicketCreationService
 
         if (config('integrations.jira.enabled')) {
             CreateJiraIssueJob::dispatch($ticket->id)->afterCommit();
+        }
+
+        if (config('integrations.github.enabled')) {
+            CreateGitHubIssueJob::dispatch(
+                $ticket->id,
+                (string) config('integrations.github.repository'),
+            )->afterCommit();
         }
 
         return $ticket;

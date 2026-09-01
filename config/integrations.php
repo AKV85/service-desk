@@ -9,4 +9,11 @@ return [
         'project_key' => env('JIRA_PROJECT_KEY'),
         'issue_type_id' => env('JIRA_ISSUE_TYPE_ID'),
     ],
+
+    'github' => [
+        'enabled' => env('GITHUB_INTEGRATION_ENABLED', false),
+        'token' => env('GITHUB_TOKEN'),
+        'repository' => env('GITHUB_REPOSITORY'),
+        'webhook_secret' => env('GITHUB_WEBHOOK_SECRET'),
+    ],
 ];
