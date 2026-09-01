@@ -4,6 +4,7 @@ namespace App\Services\Integrations;
 
 use App\Contracts\Integrations\GitHubClient;
 use App\Data\Integrations\GitHub\CreateGitHubIssueData;
+use App\Data\Integrations\GitHub\GitHubIssueWebhookData;
 use App\Enums\Integrations\GitHubResourceType;
 use App\Enums\Integrations\IntegrationSyncStatus;
 use App\Exceptions\Integrations\IntegrationException;
@@ -85,6 +86,43 @@ class GitHubIntegrationService
             'sync_status' => IntegrationSyncStatus::Synced,
             'last_error' => null,
             'metadata' => $result->metadata,
+        ]);
+
+        return $githubResource->refresh();
+    }
+
+    public function syncIssueFromWebhook(
+        GitHubIssueWebhookData $data
+    ): ?GitHubResource {
+        $githubResource = GitHubResource::query()
+            ->where('repository', $data->repository)
+            ->where('resource_type', GitHubResourceType::Issue)
+            ->where('external_id', $data->externalId)
+            ->first();
+
+        if ($githubResource === null) {
+            return null;
+        }
+
+        if (
+            $githubResource->external_updated_at !== null
+            && $githubResource->external_updated_at->gt($data->updatedAt)
+        ) {
+            return $githubResource;
+        }
+
+        $githubResource->update([
+            'resource_number' => $data->resourceNumber,
+            'url' => $data->url,
+            'external_state' => $data->state,
+            'external_updated_at' => $data->updatedAt,
+            'last_synced_at' => now(),
+            'sync_status' => IntegrationSyncStatus::Synced,
+            'last_error' => null,
+            'metadata' => array_merge(
+                $githubResource->metadata ?? [],
+                $data->metadata,
+            ),
         ]);
 
         return $githubResource->refresh();

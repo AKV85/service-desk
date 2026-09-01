@@ -2,7 +2,10 @@
 
 use App\Http\Controllers\Api\ApiTokenController;
 use App\Http\Controllers\Api\TicketController;
+use App\Http\Controllers\Webhooks\GitHubWebhookController;
 use Illuminate\Support\Facades\Route;
+
+Route::post('/webhooks/github', GitHubWebhookController::class);
 
 Route::post('/tokens', [ApiTokenController::class, 'store'])
     ->middleware('throttle:api-token');
