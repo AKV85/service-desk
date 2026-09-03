@@ -16,4 +16,11 @@ return [
         'repository' => env('GITHUB_REPOSITORY'),
         'webhook_secret' => env('GITHUB_WEBHOOK_SECRET'),
     ],
+
+    'ai' => [
+        'enabled' => env('AI_ENABLED', false),
+        'provider' => env('AI_PROVIDER', 'openai'),
+        'api_key' => env('AI_API_KEY'),
+        'model' => env('AI_MODEL'),
+    ],
 ];
