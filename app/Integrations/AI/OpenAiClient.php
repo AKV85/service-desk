@@ -66,7 +66,15 @@ final class OpenAiClient implements AiClient
 
         $content = $response->json('output.0.content.0.text');
 
-        if (! is_string($content) || $content === '') {
+        $content = collect($response->json('output', []))
+            ->where('type', 'message')
+            ->flatMap(fn (array $item) => $item['content'] ?? [])
+            ->where('type', 'output_text')
+            ->pluck('text')
+            ->filter(fn ($text) => is_string($text) && filled($text))
+            ->implode("\n");
+
+        if (blank($content)) {
             throw new IntegrationException(
                 message: 'OpenAI response does not contain generated text.',
                 provider: 'openai',
