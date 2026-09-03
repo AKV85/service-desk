@@ -31,6 +31,15 @@ class OpenAiClientTest extends TestCase
                 'model' => 'test-model',
                 'output' => [
                     [
+                        'type' => 'reasoning',
+                        'id' => 'rs_123',
+                        'summary' => [],
+                    ],
+                    [
+                        'type' => 'message',
+                        'id' => 'msg_123',
+                        'status' => 'completed',
+                        'role' => 'assistant',
                         'content' => [
                             [
                                 'type' => 'output_text',
