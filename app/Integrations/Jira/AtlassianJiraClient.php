@@ -93,18 +93,40 @@ final class AtlassianJiraClient implements JiraClient
     {
         $this->ensureConfigured('get_issue');
 
-        $response = $this->http
-            ->withBasicAuth(
-                (string) config('integrations.jira.email'),
-                (string) config('integrations.jira.api_token'),
-            )
-            ->acceptJson()
-            ->get(
-                rtrim((string) config('integrations.jira.base_url'), '/')
-                    .'/rest/api/3/issue/'
-                    .$externalId,
-            )
-            ->throw();
+        try {
+            $response = $this->http
+                ->withBasicAuth(
+                    (string) config('integrations.jira.email'),
+                    (string) config('integrations.jira.api_token'),
+                )
+                ->acceptJson()
+                ->connectTimeout(5)
+                ->timeout(15)
+                ->get(
+                    rtrim((string) config('integrations.jira.base_url'), '/')
+                        .'/rest/api/3/issue/'
+                        .$externalId,
+                )
+                ->throw();
+        } catch (ConnectionException $exception) {
+            throw new IntegrationException(
+                message: 'Unable to connect to Jira.',
+                provider: 'jira',
+                operation: 'get_issue',
+                retryable: true,
+                previous: $exception,
+            );
+        } catch (RequestException $exception) {
+            $status = $exception->response->status();
+
+            throw new IntegrationException(
+                message: "Jira get issue request failed with HTTP {$status}.",
+                provider: 'jira',
+                operation: 'get_issue',
+                retryable: $status === 429 || $status >= 500,
+                previous: $exception,
+            );
+        }
 
         return new JiraIssueData(
             externalId: (string) $response->json('id'),

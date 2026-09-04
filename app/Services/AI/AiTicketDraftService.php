@@ -40,6 +40,8 @@ class AiTicketDraftService
         string $type,
         string $instructions,
     ): AiTicketDraftData {
+        $this->ensureEnabled();
+
         $context = $this->contextBuilder->build($ticket);
 
         $response = $this->aiClient->generate(
@@ -140,5 +142,12 @@ Rules:
 - Do not instruct the system to modify the ticket or any external integration.
 - Return JSON only, without Markdown or additional text.
 PROMPT;
+    }
+
+    private function ensureEnabled(): void
+    {
+        if (! config('integrations.ai.enabled')) {
+            throw new RuntimeException('AI integration is disabled.');
+        }
     }
 }

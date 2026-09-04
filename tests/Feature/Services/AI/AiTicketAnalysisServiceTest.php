@@ -16,6 +16,13 @@ class AiTicketAnalysisServiceTest extends TestCase
 {
     use RefreshDatabase;
 
+    protected function setUp(): void
+    {
+        parent::setUp();
+
+        config()->set('integrations.ai.enabled', true);
+    }
+
     public function test_it_analyzes_ticket_and_returns_normalized_result(): void
     {
         $ticket = Ticket::factory()->create([
@@ -237,5 +244,24 @@ class AiTicketAnalysisServiceTest extends TestCase
             model: 'test-model',
             externalId: 'response-123',
         );
+    }
+
+    public function test_it_fails_when_ai_integration_is_disabled(): void
+    {
+        config()->set('integrations.ai.enabled', false);
+
+        $ticket = Ticket::factory()->create();
+
+        $aiClient = Mockery::mock(AiClient::class);
+
+        $aiClient
+            ->shouldNotReceive('generate');
+
+        $this->app->instance(AiClient::class, $aiClient);
+
+        $this->expectException(RuntimeException::class);
+        $this->expectExceptionMessage('AI integration is disabled.');
+
+        app(AiTicketAnalysisService::class)->analyze($ticket);
     }
 }
