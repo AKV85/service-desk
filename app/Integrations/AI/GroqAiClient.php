@@ -10,7 +10,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Http\Client\Factory as HttpFactory;
 use Illuminate\Http\Client\RequestException;
 
-final class OpenAiClient implements AiClient
+final class GroqAiClient implements AiClient
 {
     public function __construct(
         private readonly HttpFactory $http,
@@ -21,7 +21,7 @@ final class OpenAiClient implements AiClient
         $this->ensureConfigured('generate');
 
         $payload = [
-            'model' => (string) config('integrations.ai.openai.model'),
+            'model' => (string) config('integrations.ai.groq.model'),
             'input' => $request->input,
             'store' => false,
         ];
@@ -33,21 +33,21 @@ final class OpenAiClient implements AiClient
         try {
             $response = $this->http
                 ->withToken(
-                    (string) config('integrations.ai.openai.api_key'),
+                    (string) config('integrations.ai.groq.api_key'),
                 )
                 ->acceptJson()
                 ->asJson()
                 ->connectTimeout(5)
                 ->timeout(30)
                 ->post(
-                    'https://api.openai.com/v1/responses',
+                    'https://api.groq.com/openai/v1/responses',
                     $payload,
                 )
                 ->throw();
         } catch (ConnectionException $exception) {
             throw new IntegrationException(
-                message: 'Unable to connect to OpenAI.',
-                provider: 'openai',
+                message: 'Unable to connect to Groq.',
+                provider: 'groq',
                 operation: 'generate',
                 retryable: true,
                 previous: $exception,
@@ -56,8 +56,8 @@ final class OpenAiClient implements AiClient
             $status = $exception->response->status();
 
             throw new IntegrationException(
-                message: "OpenAI generate request failed with HTTP {$status}.",
-                provider: 'openai',
+                message: "Groq generate request failed with HTTP {$status}.",
+                provider: 'groq',
                 operation: 'generate',
                 retryable: $status === 429 || $status >= 500,
                 previous: $exception,
@@ -74,8 +74,8 @@ final class OpenAiClient implements AiClient
 
         if (blank($content)) {
             throw new IntegrationException(
-                message: 'OpenAI response does not contain generated text.',
-                provider: 'openai',
+                message: 'Groq response does not contain generated text.',
+                provider: 'groq',
                 operation: 'generate',
                 retryable: false,
             );
@@ -99,10 +99,10 @@ final class OpenAiClient implements AiClient
         ];
 
         foreach ($required as $key) {
-            if (blank(config("integrations.ai.openai.{$key}"))) {
+            if (blank(config("integrations.ai.groq.{$key}"))) {
                 throw new IntegrationException(
-                    message: "OpenAI integration configuration is incomplete: {$key} is missing.",
-                    provider: 'openai',
+                    message: "Groq integration configuration is incomplete: {$key} is missing.",
+                    provider: 'groq',
                     operation: $operation,
                     retryable: false,
                 );
