@@ -20,7 +20,15 @@ return [
     'ai' => [
         'enabled' => env('AI_ENABLED', false),
         'provider' => env('AI_PROVIDER', 'openai'),
-        'api_key' => env('AI_API_KEY'),
-        'model' => env('AI_MODEL'),
+
+        'openai' => [
+            'api_key' => env('OPENAI_API_KEY'),
+            'model' => env('OPENAI_MODEL'),
+        ],
+
+        'groq' => [
+            'api_key' => env('GROQ_API_KEY'),
+            'model' => env('GROQ_MODEL'),
+        ],
     ],
 ];

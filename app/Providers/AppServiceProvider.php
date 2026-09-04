@@ -5,6 +5,7 @@ namespace App\Providers;
 use App\Contracts\Integrations\AiClient;
 use App\Contracts\Integrations\GitHubClient;
 use App\Contracts\Integrations\JiraClient;
+use App\Integrations\AI\GroqAiClient;
 use App\Integrations\AI\OpenAiClient;
 use App\Integrations\GitHub\GitHubApiClient;
 use App\Integrations\Jira\AtlassianJiraClient;
@@ -26,7 +27,15 @@ class AppServiceProvider extends ServiceProvider
 
         $this->app->bind(
             AiClient::class,
-            OpenAiClient::class,
+            function ($app): AiClient {
+                return match (config('integrations.ai.provider')) {
+                    'openai' => $app->make(OpenAiClient::class),
+                    'groq' => $app->make(GroqAiClient::class),
+                    default => throw new \RuntimeException(
+                        'Unsupported AI provider: '.config('integrations.ai.provider'),
+                    ),
+                };
+            },
         );
     }
 
