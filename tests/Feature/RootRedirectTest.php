@@ -5,7 +5,7 @@ namespace Tests\Feature;
 use App\Models\User;
 use Tests\TestCase;
 
-class ExampleTest extends TestCase
+class RootRedirectTest extends TestCase
 {
     public function test_guest_is_redirected_from_root_to_login(): void
     {
