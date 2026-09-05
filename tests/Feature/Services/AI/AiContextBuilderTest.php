@@ -11,6 +11,7 @@ use App\Enums\UserRole;
 use App\Models\GitHubResource;
 use App\Models\JiraIssue;
 use App\Models\Ticket;
+use App\Models\TicketAttachment;
 use App\Models\TicketComment;
 use App\Models\TicketHistory;
 use App\Models\User;
@@ -63,6 +64,15 @@ class AiContextBuilderTest extends TestCase
                 'status' => TicketStatus::InProgress->value,
             ],
             'created_at' => now(),
+        ]);
+
+        $attachment = TicketAttachment::create([
+            'ticket_id' => $ticket->id,
+            'user_id' => $commentAuthor->id,
+            'original_name' => 'production-error.png',
+            'path' => 'tickets/'.$ticket->id.'/production-error.png',
+            'mime_type' => 'image/png',
+            'size' => 28672,
         ]);
 
         $jiraIssue = JiraIssue::create([
@@ -153,6 +163,32 @@ class AiContextBuilderTest extends TestCase
             $context->history[0]->newValues,
         );
 
+        $this->assertCount(1, $context->attachments);
+        $this->assertSame(
+            $attachment->id,
+            $context->attachments[0]->id,
+        );
+        $this->assertSame(
+            'production-error.png',
+            $context->attachments[0]->originalName,
+        );
+        $this->assertSame(
+            'image/png',
+            $context->attachments[0]->mimeType,
+        );
+        $this->assertSame(
+            28672,
+            $context->attachments[0]->size,
+        );
+        $this->assertSame(
+            $commentAuthor->id,
+            $context->attachments[0]->uploadedBy->id,
+        );
+        $this->assertSame(
+            'Admin User',
+            $context->attachments[0]->uploadedBy->name,
+        );
+
         $this->assertNotNull($context->jiraIssue);
         $this->assertSame('10001', $context->jiraIssue->externalId);
         $this->assertSame('SD-100', $context->jiraIssue->issueKey);
@@ -188,6 +224,7 @@ class AiContextBuilderTest extends TestCase
         $this->assertNull($context->ticket->assignee);
         $this->assertSame([], $context->comments);
         $this->assertSame([], $context->history);
+        $this->assertSame([], $context->attachments);
         $this->assertNull($context->jiraIssue);
         $this->assertSame([], $context->githubResources);
     }
@@ -244,6 +281,28 @@ class AiContextBuilderTest extends TestCase
             'created_at' => now(),
         ]);
 
+        $olderAttachment = TicketAttachment::create([
+            'ticket_id' => $ticket->id,
+            'user_id' => $user->id,
+            'original_name' => 'older.log',
+            'path' => 'tickets/'.$ticket->id.'/older.log',
+            'mime_type' => 'text/plain',
+            'size' => 100,
+            'created_at' => now()->subHour(),
+            'updated_at' => now()->subHour(),
+        ]);
+
+        $newerAttachment = TicketAttachment::create([
+            'ticket_id' => $ticket->id,
+            'user_id' => $user->id,
+            'original_name' => 'newer.log',
+            'path' => 'tickets/'.$ticket->id.'/newer.log',
+            'mime_type' => 'text/plain',
+            'size' => 200,
+            'created_at' => now(),
+            'updated_at' => now(),
+        ]);
+
         $olderGitHubResource = GitHubResource::create([
             'ticket_id' => $ticket->id,
             'resource_type' => GitHubResourceType::Issue,
@@ -272,6 +331,11 @@ class AiContextBuilderTest extends TestCase
         $this->assertSame(
             [$olderHistory->id, $newerHistory->id],
             array_column($context->history, 'id'),
+        );
+
+        $this->assertSame(
+            [$olderAttachment->id, $newerAttachment->id],
+            array_column($context->attachments, 'id'),
         );
 
         $this->assertSame(

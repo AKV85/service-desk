@@ -1,6 +1,7 @@
 <?php
 
 use App\Http\Controllers\DashboardController;
+use App\Http\Controllers\TicketAiController;
 use App\Http\Controllers\TicketAttachmentController;
 use App\Http\Controllers\TicketController;
 use Illuminate\Support\Facades\Route;
@@ -40,4 +41,10 @@ Route::middleware('auth')->group(function () {
         ->name('tickets.attachments.download');
     Route::delete('/tickets/{ticket}', [TicketController::class, 'destroy'])
         ->name('tickets.destroy');
+    Route::post('/tickets/{ticket}/ai/analyze', [TicketAiController::class, 'analyze'])
+        ->name('tickets.ai.analyze');
+    Route::post('/tickets/{ticket}/ai/response-draft', [TicketAiController::class, 'responseDraft'])
+        ->name('tickets.ai.response-draft');
+    Route::post('/tickets/{ticket}/ai/resolution-draft', [TicketAiController::class, 'resolutionDraft'])
+        ->name('tickets.ai.resolution-draft');
 });

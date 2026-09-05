@@ -81,4 +81,12 @@ class TicketPolicy
     {
         return $user->role === UserRole::Admin;
     }
+
+    public function useAi(User $user, Ticket $ticket): bool
+    {
+        return in_array($user->role, [
+            UserRole::Agent,
+            UserRole::Admin,
+        ], true);
+    }
 }
