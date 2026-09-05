@@ -19,6 +19,10 @@ class AiTicketAnalysisService
 
     public function analyze(Ticket $ticket): AiTicketAnalysisData
     {
+        if (! config('integrations.ai.enabled')) {
+            throw new RuntimeException('AI integration is disabled.');
+        }
+
         $context = $this->contextBuilder->build($ticket);
 
         $response = $this->aiClient->generate(

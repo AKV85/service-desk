@@ -199,4 +199,38 @@ class AtlassianJiraClientTest extends TestCase
 
         Http::assertNothingSent();
     }
+
+    public function test_get_issue_marks_server_error_as_retryable(): void
+    {
+        Http::fake([
+            'https://example.atlassian.net/rest/api/3/issue/10001' => Http::response([], 503),
+        ]);
+
+        try {
+            app(AtlassianJiraClient::class)->getIssue('10001');
+
+            $this->fail('Expected Jira request to fail.');
+        } catch (IntegrationException $exception) {
+            $this->assertTrue($exception->retryable);
+            $this->assertSame('jira', $exception->provider);
+            $this->assertSame('get_issue', $exception->operation);
+        }
+    }
+
+    public function test_get_issue_marks_authentication_error_as_non_retryable(): void
+    {
+        Http::fake([
+            'https://example.atlassian.net/rest/api/3/issue/10001' => Http::response([], 401),
+        ]);
+
+        try {
+            app(AtlassianJiraClient::class)->getIssue('10001');
+
+            $this->fail('Expected Jira request to fail.');
+        } catch (IntegrationException $exception) {
+            $this->assertFalse($exception->retryable);
+            $this->assertSame('jira', $exception->provider);
+            $this->assertSame('get_issue', $exception->operation);
+        }
+    }
 }
