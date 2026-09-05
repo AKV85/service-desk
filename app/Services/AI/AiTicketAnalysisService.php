@@ -91,7 +91,7 @@ Return only a valid JSON object with exactly these fields:
   "likely_cause": "likely cause or null if there is not enough information",
   "suggested_actions": ["action"],
   "observations": ["observation"],
-  "development_context": ["relevant Jira or GitHub observation"]
+  "development_context": ["relevant attachment, Jira, or GitHub observation"]
 }
 
 Rules:
@@ -100,8 +100,9 @@ Rules:
 - If the cause cannot be determined, use null for likely_cause.
 - suggested_actions must contain advisory actions only.
 - Do not instruct the system to automatically modify ticket status, priority, assignee, resolution, comments, Jira issues, or GitHub resources.
-- observations must be based only on the provided ticket, comments, and history.
-- development_context must be based only on the provided Jira and GitHub context.
+- observations must be based only on the provided ticket, comments, history, and attachment metadata.
+- Attachment metadata describes only the attached files. Do not claim to know or analyze attachment contents unless the contents are explicitly present in the provided context.
+- development_context must be based only on the provided attachment metadata, Jira context, and GitHub context.
 - Return JSON only, without Markdown or additional text.
 PROMPT;
     }

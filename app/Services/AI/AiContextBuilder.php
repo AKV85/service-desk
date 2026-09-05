@@ -2,6 +2,7 @@
 
 namespace App\Services\AI;
 
+use App\Data\AI\AiAttachmentContextData;
 use App\Data\AI\AiCommentContextData;
 use App\Data\AI\AiContextData;
 use App\Data\AI\AiGitHubContextData;
@@ -24,6 +25,10 @@ class AiContextBuilder
                 ->orderBy('id')
                 ->with('user'),
             'history' => fn ($query) => $query
+                ->orderBy('created_at')
+                ->orderBy('id')
+                ->with('user'),
+            'attachments' => fn ($query) => $query
                 ->orderBy('created_at')
                 ->orderBy('id')
                 ->with('user'),
@@ -68,6 +73,17 @@ class AiContextBuilder
                     oldValues: $history->old_values,
                     newValues: $history->new_values,
                     createdAt: $history->created_at?->toISOString(),
+                ))
+                ->values()
+                ->all(),
+            attachments: $ticket->attachments
+                ->map(fn ($attachment) => new AiAttachmentContextData(
+                    id: $attachment->id,
+                    originalName: $attachment->original_name,
+                    mimeType: $attachment->mime_type,
+                    size: $attachment->size,
+                    uploadedBy: $this->user($attachment->user),
+                    createdAt: $attachment->created_at?->toISOString(),
                 ))
                 ->values()
                 ->all(),

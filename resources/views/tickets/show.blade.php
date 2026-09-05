@@ -171,6 +171,136 @@
     </section>
     @endif
 </div>
+
+@can('useAi', $ticket)
+<section class="panel ai-panel">
+    <h3>AI Assistance</h3>
+
+    <p class="empty-state">
+        AI suggestions are advisory only and do not change the ticket automatically.
+    </p>
+
+    <div class="ai-actions">
+        <form
+            method="POST"
+            action="{{ route('tickets.ai.analyze', $ticket) }}"
+            data-ai-form>
+            @csrf
+
+            <button type="submit">
+                Analyze ticket
+            </button>
+        </form>
+
+        <form
+            method="POST"
+            action="{{ route('tickets.ai.response-draft', $ticket) }}"
+            data-ai-form>
+            @csrf
+
+            <button type="submit">
+                Generate response draft
+            </button>
+        </form>
+
+        <form
+            method="POST"
+            action="{{ route('tickets.ai.resolution-draft', $ticket) }}"
+            data-ai-form>
+            @csrf
+
+            <button type="submit">
+                Generate resolution draft
+            </button>
+        </form>
+    </div>
+
+    <div data-ai-result>
+        @if (session('ai_error'))
+        <p class="field-error">
+            {{ session('ai_error') }}
+        </p>
+        @endif
+
+        @if (session('ai_analysis'))
+        @php($analysis = session('ai_analysis'))
+
+        <div class="ai-result">
+            <h4>AI Analysis</h4>
+
+            <p>
+                <strong>Summary:</strong>
+                {{ $analysis['summary'] }}
+            </p>
+
+            @if ($analysis['likely_cause'])
+            <p>
+                <strong>Likely cause:</strong>
+                {{ $analysis['likely_cause'] }}
+            </p>
+            @endif
+
+            @if (! empty($analysis['suggested_actions']))
+            <div>
+                <strong>Suggested actions:</strong>
+
+                <ul>
+                    @foreach ($analysis['suggested_actions'] as $action)
+                    <li>{{ $action }}</li>
+                    @endforeach
+                </ul>
+            </div>
+            @endif
+
+            @if (! empty($analysis['observations']))
+            <div>
+                <strong>Observations:</strong>
+
+                <ul>
+                    @foreach ($analysis['observations'] as $observation)
+                    <li>{{ $observation }}</li>
+                    @endforeach
+                </ul>
+            </div>
+            @endif
+
+            @if (! empty($analysis['development_context']))
+            <div>
+                <strong>Development context:</strong>
+
+                <ul>
+                    @foreach ($analysis['development_context'] as $context)
+                    <li>{{ $context }}</li>
+                    @endforeach
+                </ul>
+            </div>
+            @endif
+
+            <small>
+                Model: {{ $analysis['model'] }}
+            </small>
+        </div>
+        @endif
+
+        @if (session('ai_draft'))
+        @php($draft = session('ai_draft'))
+
+        <div class="ai-result">
+            <h4>
+                AI {{ ucfirst($draft['type']) }} Draft
+            </h4>
+
+            <textarea rows="8" readonly>{{ $draft['content'] }}</textarea>
+
+            <small>
+                Model: {{ $draft['model'] }}
+            </small>
+        </div>
+        @endif
+    </div>
+</section>
+@endcan
+
 <section class="panel attachments-panel">
     <h3>Attachments</h3>
 
@@ -225,6 +355,7 @@
         <button type="submit">Upload attachment</button>
     </form>
 </section>
+
 <div class="ticket-content-grid">
     <section class="panel">
         <h3>Comments</h3>
