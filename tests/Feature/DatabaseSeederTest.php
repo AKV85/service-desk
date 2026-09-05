@@ -14,8 +14,31 @@ class DatabaseSeederTest extends TestCase
 {
     use RefreshDatabase;
 
-    public function test_database_seeder_creates_demo_data(): void
+    public function test_database_seeder_does_not_create_demo_data_when_disabled(): void
     {
+        config()->set('demo.enabled', false);
+
+        $this->seed(DatabaseSeeder::class);
+
+        $this->assertDatabaseMissing('users', [
+            'email' => 'requester@example.com',
+        ]);
+
+        $this->assertDatabaseMissing('users', [
+            'email' => 'agent@example.com',
+        ]);
+
+        $this->assertDatabaseMissing('users', [
+            'email' => 'admin@example.com',
+        ]);
+
+        $this->assertSame(0, Ticket::count());
+    }
+
+    public function test_database_seeder_creates_demo_data_when_enabled(): void
+    {
+        config()->set('demo.enabled', true);
+
         $this->seed(DatabaseSeeder::class);
 
         $this->assertDatabaseHas('users', [

@@ -480,11 +480,21 @@ Demo users are provided for each supported role:
 
 The seed data also creates example ticket-related data so the main workflow can be demonstrated without manually building the initial dataset.
 
-A fresh demo database can be created with:
+Demo data is disabled by default.
+
+To create a fresh demo database, explicitly enable demo seeding in `.env`:
+
+```env
+DEMO_DATA_ENABLED=true
+```
+
+Then run:
 
 ```bash
 ./vendor/bin/sail artisan migrate:fresh --seed
 ```
+
+Demo data uses known demonstration credentials and must not be enabled in a real production environment.
 
 ---
 
@@ -1031,11 +1041,21 @@ Sukuriami demonstraciniai naudotojai kiekvienai palaikomai rolei:
 
 Seeder taip pat sukuria pavyzdinius užklausų duomenis, kad pagrindinį workflow būtų galima demonstruoti be rankinio pradinių duomenų kūrimo.
 
-Naują demonstracinę duomenų bazę galima sukurti komanda:
+Pagal numatytuosius nustatymus demonstracinių duomenų kūrimas yra išjungtas.
+
+Norint sukurti naują demonstracinę duomenų bazę, `.env` faile reikia aiškiai įjungti demonstracinių duomenų kūrimą:
+
+```env
+DEMO_DATA_ENABLED=true
+```
+
+Tada paleisti:
 
 ```bash
 ./vendor/bin/sail artisan migrate:fresh --seed
 ```
+
+Demonstraciniai duomenys naudoja viešai žinomus demonstracinių paskyrų prisijungimo duomenis, todėl ši funkcija neturi būti įjungta realioje produkcinėje aplinkoje.
 
 ---
 
