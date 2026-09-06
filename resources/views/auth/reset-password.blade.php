@@ -1,13 +1,13 @@
 @extends('layouts.guest')
 
-@section('title', 'Login | Service Desk')
+@section('title', 'Reset Password | Service Desk')
 
 @section('content')
 <div class="login-wrapper">
     <section class="login-card">
         <div class="login-header">
             <h1>Service Desk</h1>
-            <p>Sign in to continue</p>
+            <p>Create a new password</p>
         </div>
 
         @if ($errors->any())
@@ -20,48 +20,45 @@
         </div>
         @endif
 
-        <form method="POST" action="{{ route('login.store') }}" class="login-form">
+        <form method="POST" action="{{ route('password.update') }}" class="login-form">
             @csrf
+
+            <input type="hidden" name="token" value="{{ request()->route('token') }}">
 
             <div>
                 <label for="email">Email</label>
-
                 <input
                     id="email"
                     type="email"
                     name="email"
-                    value="{{ old('email') }}"
+                    value="{{ old('email', request('email')) }}"
                     autocomplete="email"
                     required
                     autofocus>
             </div>
 
             <div>
-                <label for="password">Password</label>
-
+                <label for="password">New password</label>
                 <input
                     id="password"
                     type="password"
                     name="password"
-                    autocomplete="current-password"
+                    autocomplete="new-password"
                     required>
             </div>
-            <div>
-                <a href="{{ route('password.request') }}">
-                    Forgot password?
-                </a>
-            </div>
-            <label class="remember-option">
-                <input
-                    type="checkbox"
-                    name="remember"
-                    @checked(old('remember'))>
 
-                <span>Remember me</span>
-            </label>
+            <div>
+                <label for="password_confirmation">Confirm password</label>
+                <input
+                    id="password_confirmation"
+                    type="password"
+                    name="password_confirmation"
+                    autocomplete="new-password"
+                    required>
+            </div>
 
             <button type="submit" class="login-button">
-                Login
+                Reset password
             </button>
         </form>
     </section>
