@@ -1,14 +1,20 @@
 @extends('layouts.guest')
 
-@section('title', 'Login | Service Desk')
+@section('title', 'Forgot Password | Service Desk')
 
 @section('content')
 <div class="login-wrapper">
     <section class="login-card">
         <div class="login-header">
             <h1>Service Desk</h1>
-            <p>Sign in to continue</p>
+            <p>Reset your password</p>
         </div>
+
+        @if (session('status'))
+        <div class="login-alert" role="status">
+            {{ session('status') }}
+        </div>
+        @endif
 
         @if ($errors->any())
         <div class="login-alert" role="alert">
@@ -20,12 +26,11 @@
         </div>
         @endif
 
-        <form method="POST" action="{{ route('login.store') }}" class="login-form">
+        <form method="POST" action="{{ route('password.email') }}" class="login-form">
             @csrf
 
             <div>
                 <label for="email">Email</label>
-
                 <input
                     id="email"
                     type="email"
@@ -36,34 +41,14 @@
                     autofocus>
             </div>
 
-            <div>
-                <label for="password">Password</label>
-
-                <input
-                    id="password"
-                    type="password"
-                    name="password"
-                    autocomplete="current-password"
-                    required>
-            </div>
-            <div>
-                <a href="{{ route('password.request') }}">
-                    Forgot password?
-                </a>
-            </div>
-            <label class="remember-option">
-                <input
-                    type="checkbox"
-                    name="remember"
-                    @checked(old('remember'))>
-
-                <span>Remember me</span>
-            </label>
-
             <button type="submit" class="login-button">
-                Login
+                Send reset link
             </button>
         </form>
+
+        <p>
+            <a href="{{ route('login') }}">Back to login</a>
+        </p>
     </section>
 </div>
 @endsection

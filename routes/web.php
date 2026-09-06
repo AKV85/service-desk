@@ -14,10 +14,10 @@ Route::get('/', function () {
 });
 
 Route::get('/dashboard', [DashboardController::class, 'index'])
-    ->middleware('auth')
+    ->middleware(['auth', 'verified'])
     ->name('dashboard');
 
-Route::middleware('auth')->group(function () {
+Route::middleware(['auth', 'verified'])->group(function () {
     Route::get('/tickets', [TicketController::class, 'index'])
         ->name('tickets.index');
     Route::get('/tickets/create', [TicketController::class, 'create'])
