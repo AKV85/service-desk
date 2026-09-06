@@ -683,3 +683,17 @@ ul {
         width: 100%;
     }
 }
+
+.auth-link-button {
+    padding: 0;
+    border: 0;
+    background: none;
+    color: #2563eb;
+    font: inherit;
+    cursor: pointer;
+    text-decoration: underline;
+}
+
+.auth-link-button:hover {
+    text-decoration: none;
+}

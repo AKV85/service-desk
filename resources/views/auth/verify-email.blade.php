@@ -28,10 +28,10 @@
             </button>
         </form>
 
-        <form method="POST" action="{{ route('logout') }}" class="login-form">
+        <form method="POST" action="{{ route('logout') }}">
             @csrf
 
-            <button type="submit">
+            <button type="submit" class="auth-link-button">
                 Logout
             </button>
         </form>
