@@ -5,8 +5,10 @@ namespace App\Http\Controllers;
 use App\Http\Requests\StoreTicketAttachmentRequest;
 use App\Models\Ticket;
 use App\Models\TicketAttachment;
+use App\Services\TicketHistoryService;
 use App\Services\TicketNotificationService;
 use Illuminate\Http\RedirectResponse;
+use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\HttpFoundation\StreamedResponse;
 use Throwable;
@@ -16,7 +18,8 @@ class TicketAttachmentController extends Controller
     public function store(
         StoreTicketAttachmentRequest $request,
         Ticket $ticket,
-        TicketNotificationService $notificationService
+        TicketNotificationService $notificationService,
+        TicketHistoryService $historyService
     ): RedirectResponse {
         $file = $request->file('attachment');
 
@@ -26,13 +29,29 @@ class TicketAttachmentController extends Controller
         );
 
         try {
-            $attachment = $ticket->attachments()->create([
-                'user_id' => $request->user()->id,
-                'original_name' => $file->getClientOriginalName(),
-                'path' => $path,
-                'mime_type' => $file->getMimeType(),
-                'size' => $file->getSize(),
-            ]);
+            $attachment = DB::transaction(function () use (
+                $request,
+                $ticket,
+                $historyService,
+                $file,
+                $path
+            ): TicketAttachment {
+                $attachment = $ticket->attachments()->create([
+                    'user_id' => $request->user()->id,
+                    'original_name' => $file->getClientOriginalName(),
+                    'path' => $path,
+                    'mime_type' => $file->getMimeType(),
+                    'size' => $file->getSize(),
+                ]);
+
+                $historyService->attachmentAdded(
+                    $ticket,
+                    $attachment,
+                    $request->user()
+                );
+
+                return $attachment;
+            });
         } catch (Throwable $exception) {
             Storage::disk('local')->delete($path);
 

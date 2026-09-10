@@ -421,23 +421,42 @@
                 @if ($history->action === 'status_changed')
                 <p>
                     Changed status from
-                    <strong>{{ $history->old_values['status'] ?? 'unknown' }}</strong>
+                    <strong>
+                        {{ \App\Enums\TicketStatus::tryFrom($history->old_values['status'] ?? '')?->label() ?? 'Unknown' }}
+                    </strong>
                     to
-                    <strong>{{ $history->new_values['status'] ?? 'unknown' }}</strong>
+                    <strong>
+                        {{ \App\Enums\TicketStatus::tryFrom($history->new_values['status'] ?? '')?->label() ?? 'Unknown' }}
+                    </strong>
                 </p>
                 @elseif ($history->action === 'priority_changed')
                 <p>
                     Changed priority from
-                    <strong>{{ $history->old_values['priority'] ?? 'unknown' }}</strong>
+                    <strong>
+                        {{ \App\Enums\TicketPriority::tryFrom($history->old_values['priority'] ?? '')?->label() ?? 'Unknown' }}
+                    </strong>
                     to
-                    <strong>{{ $history->new_values['priority'] ?? 'unknown' }}</strong>
+                    <strong>
+                        {{ \App\Enums\TicketPriority::tryFrom($history->new_values['priority'] ?? '')?->label() ?? 'Unknown' }}
+                    </strong>
                 </p>
                 @elseif ($history->action === 'assignee_changed')
                 <p>
                     Changed assignee from
-                    <strong>{{ $history->old_values['assigned_to_id'] ?? 'Unassigned' }}</strong>
+                    <strong>{{ $history->old_values['assigned_to_name'] ?? 'Unassigned' }}</strong>
                     to
-                    <strong>{{ $history->new_values['assigned_to_id'] ?? 'Unassigned' }}</strong>
+                    <strong>{{ $history->new_values['assigned_to_name'] ?? 'Unassigned' }}</strong>
+                </p>
+                @elseif ($history->action === 'comment_added')
+                <p>
+                    Added comment
+                </p>
+                @elseif ($history->action === 'attachment_added')
+                <p>
+                    Uploaded attachment
+                    <strong>
+                        {{ $history->new_values['original_name'] ?? 'Unknown file' }}
+                    </strong>
                 </p>
                 @else
                 <p>{{ $history->action }}</p>

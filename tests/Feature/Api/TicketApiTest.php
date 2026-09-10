@@ -446,6 +446,16 @@ class TicketApiTest extends TestCase
             'user_id' => $requester->id,
             'body' => 'API comment',
         ]);
+
+        $comment = $ticket->comments()->latest('id')->first();
+        $history = $ticket->history()->latest('id')->first();
+
+        $this->assertSame('comment_added', $history->action);
+        $this->assertSame($requester->id, $history->user_id);
+        $this->assertSame(
+            $comment->id,
+            $history->new_values['comment_id']
+        );
     }
 
     public function test_requester_cannot_comment_on_another_users_ticket_via_api(): void

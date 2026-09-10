@@ -60,6 +60,21 @@ class TicketCommentTest extends TestCase
             'user_id' => $requester->id,
             'body' => 'Requester comment',
         ]);
+
+        $comment = $ticket->comments()->latest('id')->first();
+        $history = $ticket->history()->latest('id')->first();
+
+        $this->assertSame('comment_added', $history->action);
+        $this->assertSame($requester->id, $history->user_id);
+        $this->assertNull($history->old_values);
+        $this->assertSame(
+            $comment->id,
+            $history->new_values['comment_id']
+        );
+        $this->assertArrayNotHasKey(
+            'body',
+            $history->new_values
+        );
     }
 
     public function test_requester_cannot_comment_on_another_users_ticket(): void
