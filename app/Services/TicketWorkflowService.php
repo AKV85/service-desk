@@ -117,6 +117,7 @@ class TicketWorkflowService
         ?User $assignee,
         User $user
     ): void {
+        $oldAssignee = $ticket->assignee;
         $oldAssigneeId = $ticket->assigned_to_id;
         $newAssigneeId = $assignee?->id;
 
@@ -127,6 +128,7 @@ class TicketWorkflowService
         DB::transaction(function () use (
             $ticket,
             $assignee,
+            $oldAssignee,
             $user,
             $oldAssigneeId,
             $newAssigneeId
@@ -139,9 +141,11 @@ class TicketWorkflowService
                 'action' => 'assignee_changed',
                 'old_values' => [
                     'assigned_to_id' => $oldAssigneeId,
+                    'assigned_to_name' => $oldAssignee?->name,
                 ],
                 'new_values' => [
                     'assigned_to_id' => $newAssigneeId,
+                    'assigned_to_name' => $assignee?->name,
                 ],
             ]);
 

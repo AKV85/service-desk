@@ -15,10 +15,12 @@ use App\Http\Requests\UpdateTicketRequest;
 use App\Models\Ticket;
 use App\Models\User;
 use App\Services\TicketCreationService;
+use App\Services\TicketHistoryService;
 use App\Services\TicketNotificationService;
 use App\Services\TicketWorkflowService;
 use Illuminate\Http\JsonResponse;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\DB;
 
 class TicketController extends Controller
 {
@@ -144,12 +146,27 @@ class TicketController extends Controller
     public function storeComment(
         StoreTicketCommentRequest $request,
         Ticket $ticket,
-        TicketNotificationService $notificationService
+        TicketNotificationService $notificationService,
+        TicketHistoryService $historyService
     ): JsonResponse {
-        $comment = $ticket->comments()->create([
-            'user_id' => $request->user()->id,
-            'body' => $request->validated('body'),
-        ]);
+        $comment = DB::transaction(function () use (
+            $request,
+            $ticket,
+            $historyService
+        ) {
+            $comment = $ticket->comments()->create([
+                'user_id' => $request->user()->id,
+                'body' => $request->validated('body'),
+            ]);
+
+            $historyService->commentAdded(
+                $ticket,
+                $comment,
+                $request->user()
+            );
+
+            return $comment;
+        });
 
         $notificationService->commentAdded(
             $ticket,

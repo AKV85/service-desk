@@ -72,6 +72,21 @@ class TicketAttachmentTest extends TestCase
         );
 
         Storage::disk('local')->assertExists($attachment->path);
+        $history = $ticket->history()->latest('id')->first();
+
+        $this->assertSame('attachment_added', $history->action);
+        $this->assertSame($requester->id, $history->user_id);
+        $this->assertNull($history->old_values);
+
+        $this->assertSame(
+            $attachment->id,
+            $history->new_values['attachment_id']
+        );
+
+        $this->assertSame(
+            'error-log.txt',
+            $history->new_values['original_name']
+        );
 
         $response->assertSessionHas(
             'success',

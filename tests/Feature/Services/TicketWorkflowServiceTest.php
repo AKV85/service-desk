@@ -268,6 +268,16 @@ class TicketWorkflowServiceTest extends TestCase
             $secondAgent->id,
             $history->new_values['assigned_to_id']
         );
+
+        $this->assertSame(
+            $firstAgent->name,
+            $history->old_values['assigned_to_name']
+        );
+
+        $this->assertSame(
+            $secondAgent->name,
+            $history->new_values['assigned_to_name']
+        );
     }
 
     public function test_ticket_can_be_unassigned(): void
@@ -300,6 +310,15 @@ class TicketWorkflowServiceTest extends TestCase
 
         $this->assertNull(
             $history->new_values['assigned_to_id']
+        );
+
+        $this->assertSame(
+            $agent->name,
+            $history->old_values['assigned_to_name']
+        );
+
+        $this->assertNull(
+            $history->new_values['assigned_to_name']
         );
     }
 
