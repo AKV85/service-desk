@@ -7,6 +7,7 @@ use App\Enums\TicketStatus;
 use App\Models\Ticket;
 use App\Models\User;
 use App\Notifications\TicketAssignedNotification;
+use App\Notifications\TicketAssigneeChangedNotification;
 use App\Notifications\TicketPriorityChangedNotification;
 use App\Notifications\TicketStatusChangedNotification;
 use Illuminate\Support\Facades\DB;
@@ -153,6 +154,20 @@ class TicketWorkflowService
                 $assignee->notify(
                     new TicketAssignedNotification($ticket)
                 );
+
+                $requester = $ticket->creator;
+
+                if (
+                    $requester->id !== $user->id
+                    && $requester->id !== $assignee->id
+                ) {
+                    $requester->notify(
+                        new TicketAssigneeChangedNotification(
+                            $ticket,
+                            $assignee
+                        )
+                    );
+                }
             }
         });
     }
