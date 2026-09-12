@@ -1,24 +1,103 @@
 # Service Desk
 
-Service Desk is a Laravel-based support ticket management application built as a backend-focused portfolio project.
+Service Desk is a production-deployed Laravel support ticket management application built as a backend-focused portfolio project.
 
-The application implements a complete support ticket workflow with role-based access control, assignment, comments, change history, private attachments, queued notifications, REST API authentication, external Jira and GitHub integrations, GitHub webhooks, and AI-assisted ticket analysis and drafting.
+The application implements a complete support ticket workflow with role-based access control, assignment, comments, human-readable audit history, private attachments, queued notifications, REST API authentication, external Jira and GitHub integrations, GitHub webhooks, and AI-assisted ticket analysis and drafting.
 
 External integrations and AI are optional. The core Service Desk workflow remains functional when they are disabled or unavailable.
 
+## Live Demo
+
+**Application:** https://desk.kotov.lt
+
+Demo accounts:
+
+| Role | Email | Password |
+| --- | --- | --- |
+| Requester | `requester@example.com` | `password` |
+| Agent | `agent@example.com` | `password` |
+| Admin | `admin@example.com` | `password` |
+
+The public demo also supports self-registration, email verification, and password reset.
+
+![Service Desk login](docs/screenshots/login.png)
+
+## What This Project Demonstrates
+
+- Laravel application architecture with separated validation, authorization, business logic, and persistence concerns
+- Role-based ticket workflow for Requester, Agent, and Admin users
+- Ticket assignment, priorities, status transitions, comments, and private attachments
+- Human-readable audit trail for workflow changes and ticket activity
+- Queued transactional email notifications
+- REST API secured with Laravel Sanctum
+- Jira and GitHub integrations with asynchronous processing
+- GitHub webhook handling and local synchronization of development context
+- Pluggable OpenAI and Groq integration
+- AI-assisted ticket analysis, response drafting, and resolution drafting
+- Human-in-the-loop AI design where AI suggestions never modify privileged ticket state automatically
+- Automated tests, Laravel Pint, GitHub Actions CI, and production deployment
+
+## Application Demo
+
+### Dashboard
+
+The dashboard provides a quick overview of the current ticket workload, including ticket counts by status, unassigned tickets, and recent activity.
+
+![Service Desk dashboard](docs/screenshots/dashboard.png)
+
+### Ticket List and Filtering
+
+Authorized users can search the ticket queue and filter tickets by status, priority, and assignee.
+
+![Ticket list and filters](docs/screenshots/tickets.png)
+
+### Ticket Workflow
+
+Agents and administrators can manage ticket status, priority, and assignment. Workflow timestamps such as `resolved_at` are maintained by the application, while authorization policies restrict actions according to the user's role.
+
+![Ticket workflow management](docs/screenshots/ticket-workflow.png)
+
+### Comments and Audit History
+
+Ticket activity is recorded in a human-readable audit trail. History includes status, priority, and assignee changes as well as comment and attachment activity, together with the responsible user and timestamp.
+
+Comment bodies remain in the Comments section and are not duplicated in History.
+
+![Comments and ticket audit history](docs/screenshots/audit-history.png)
+
+### AI Assistance
+
+AI assistance uses the current Service Desk context, including ticket data, comments, history, synchronized development context, and attachment metadata.
+
+In the example below, the ticket is still **In Progress**. The AI recognizes that the reported problem appears to have been fixed, but also observes that the workflow has not yet been marked as resolved.
+
+![AI ticket analysis before resolution](docs/screenshots/ai-analysis.png)
+
+An authorized user remains responsible for changing the workflow state. After the ticket is manually marked **Resolved**, AI uses the updated context when generating a resolution draft.
+
+![AI resolution draft after human resolution](docs/screenshots/ai-resolution-draft.png)
+
+AI output is advisory only. It does not automatically change ticket status, priority, assignee, resolution, comments, or other privileged business state.
+
 ## Features
+
+### Authentication and Access Control
+
+- User login and logout
+- Self-registration
+- Email verification
+- Password reset
+- Role-based access control
+- Requester, Agent, and Admin roles
 
 ### Ticket Management
 
-- User authentication
-- Role-based access control
-- Requester, Agent, and Admin roles
 - Ticket creation and editing
 - Ticket status workflow
 - Ticket priorities
 - Ticket assignment and unassignment
 - Ticket comments
-- Ticket change history
+- Human-readable ticket audit history
 - Ticket filtering and search
 - Dashboard with ticket statistics
 - Soft deletion
@@ -28,12 +107,14 @@ External integrations and AI are optional. The core Service Desk workflow remain
 
 - Queued email notifications
 - Ticket creation notifications
-- Assignment notifications
+- Assignment notification to the assigned agent
+- Assignment update notification to the ticket requester
 - Status change notifications
 - Priority change notifications
 - Comment notifications
 - Attachment notifications
-- Mailtrap integration for local email testing
+- Resend API transport for production email delivery
+- Mailtrap support for local email testing
 
 ### REST API
 
@@ -77,6 +158,10 @@ AI output is advisory only. AI does not autonomously change ticket status, prior
 - Fresh-database migration verification
 - Production-safe demo data controls
 - Laravel configuration, route, event, and view caching compatibility
+- Persistent private attachment storage in production
+- Dedicated queue worker
+- HTTPS custom domain
+- Production email delivery through Resend
 - Production deployment checklist
 - Security and architecture reviews
 
@@ -120,7 +205,8 @@ AI output is advisory only. AI does not autonomously change ticket status, prior
 - GitHub Webhooks
 - OpenAI
 - Groq
-- Mailtrap
+- Resend
+- Mailtrap for local email testing
 
 ## Architecture
 
@@ -260,15 +346,21 @@ medium
 
 ## Ticket History
 
-Important ticket changes are stored in ticket history.
+Important ticket activity is stored in ticket history and displayed newest first.
 
-Recorded workflow changes include:
+Recorded activity includes:
 
 - status changes;
 - priority changes;
-- assignee changes.
+- assignee changes;
+- comment creation;
+- attachment uploads.
 
-Old and new values are stored as structured data for auditability.
+Workflow values are displayed with human-readable labels. Assignee changes display user names instead of raw database IDs, while useful identifiers remain preserved in the stored structured metadata.
+
+Comment history records the activity without duplicating the comment body. Attachment history identifies the uploaded file by its original file name.
+
+New assignee history records keep a name snapshot so the audit trail remains understandable if user data changes later. Legacy assignee records that contain only IDs are resolved in a single batch query when possible, avoiding N+1 lookups.
 
 ## Attachments
 
@@ -308,15 +400,20 @@ The application sends queued email notifications for important ticket events.
 Supported notifications include:
 
 - ticket creation;
-- ticket assignment;
+- ticket assignment to the assigned agent;
+- assignment updates to the ticket requester;
 - ticket status change;
 - ticket priority change;
 - new ticket comment;
-- new ticket attachment.
+- new ticket attachment;
+- account email verification;
+- password reset.
 
-The user who performs an action is not notified when the notification would be redundant.
+The user who performs an action is not notified when the notification would be redundant. Reassigning a ticket to the same agent does not create a duplicate assignment notification.
 
-Notifications are processed through Laravel's database queue.
+Notifications are processed through Laravel's database queue and are configured to dispatch after the surrounding database transaction commits where required.
+
+Production email is delivered through the Resend HTTP API. Mailtrap can be used for local SMTP testing.
 
 ## REST API
 
@@ -510,11 +607,29 @@ admin@example.com
 
 Do not enable these known demo credentials in a real production environment.
 
-## Mailtrap Email Testing
+## Email Configuration
+
+### Production with Resend
+
+Production uses Laravel's Resend mail transport over HTTPS.
+
+Example configuration:
+
+```env
+MAIL_MAILER=resend
+RESEND_API_KEY=
+MAIL_FROM_ADDRESS=noreply@your-domain.example
+MAIL_FROM_NAME="${APP_NAME}"
+QUEUE_CONNECTION=database
+```
+
+The production sender domain must be verified with Resend. API keys and other mail credentials must never be committed to source control.
+
+### Local Testing with Mailtrap
 
 Mailtrap Sandbox can be used for local email testing.
 
-Configure the following variables in `.env`:
+Example local configuration:
 
 ```env
 MAIL_MAILER=smtp
@@ -524,12 +639,9 @@ MAIL_USERNAME=your_mailtrap_username
 MAIL_PASSWORD=your_mailtrap_password
 MAIL_FROM_ADDRESS=service-desk@example.com
 MAIL_FROM_NAME="${APP_NAME}"
-
 APP_URL=http://localhost
 QUEUE_CONNECTION=database
 ```
-
-Never commit real Mailtrap credentials.
 
 Clear cached configuration after changing mail settings:
 
@@ -620,6 +732,12 @@ The workflow is defined in:
 
 ## Production
 
+The application is deployed as a public HTTPS demo at:
+
+```text
+https://desk.kotov.lt
+```
+
 Production configuration must not reuse development defaults.
 
 Important requirements include:
@@ -632,17 +750,18 @@ Important requirements include:
 - supervised queue workers;
 - persistent private attachment storage;
 - production mail configuration;
+- trusted proxy handling appropriate for the hosting platform;
 - Laravel optimization caches;
 - optional integrations enabled only when their credentials are configured;
-- demo data disabled unless the deployment is intentionally a disposable public demo.
+- demo data enabled only when the deployment is intentionally a public demo.
+
+The current public demo uses a dedicated web service, database-backed queue worker, persistent private attachment storage, and Resend for transactional email delivery.
 
 The complete application-level deployment procedure is documented in:
 
 ```text
 docs/production-deployment-checklist.md
 ```
-
-Trusted proxy configuration is intentionally deployment-specific and must be configured during deployment according to the selected hosting architecture.
 
 Laravel exposes the health endpoint:
 
