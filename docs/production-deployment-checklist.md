@@ -1,8 +1,25 @@
 # Production Deployment Checklist
 
-This document describes the production deployment requirements for the Service Desk application.
+This document describes the production deployment requirements and the current production setup for the Service Desk application.
 
-The exact hosting platform is selected and configured separately during SD-33. This checklist defines the application-level requirements that must be satisfied by that platform.
+The application was deployed and verified during SD-33. SD-35 revalidated the documentation against the final portfolio implementation so this checklist can be used both as a description of the current deployment and as a reproducible deployment reference.
+
+## Current Production Deployment
+
+The portfolio demo currently uses:
+
+- public application: `https://desk.kotov.lt`
+- Railway web service for the Laravel application
+- Railway MySQL database
+- dedicated Railway queue worker service
+- database-backed Laravel queues
+- persistent private storage mounted for `storage/app/private`
+- Resend HTTP API for transactional email
+- HTTPS with secure session cookies
+- trusted forwarded proxy headers configured for the Railway deployment
+- Laravel `/up` health endpoint
+
+External Jira, GitHub, and AI integrations remain optional and independently configurable. The core Service Desk ticket workflow does not depend on provider availability.
 
 ## Runtime Requirements
 
@@ -11,25 +28,25 @@ Production requires:
 - PHP 8.4.1 or newer
 - Composer
 - MySQL-compatible database
-- Node.js 22 for frontend asset builds, unless assets are built in CI before deployment
-- a web server capable of serving the Laravel `public` directory
+- Node.js 22 for frontend asset builds, unless assets are built before deployment
+- a web server or application platform capable of serving the Laravel `public` directory
 - HTTPS
 - a persistent queue worker
-- persistent application storage
+- persistent application storage for private attachments
 
 The project CI currently uses PHP 8.5 and Node.js 22.
 
 ## Production Environment
 
-Start from `.env.example`, but configure production-specific values.
+Start from `.env.example`, but configure production-specific values and secrets on the hosting platform.
 
-Required production settings include:
+A representative production configuration is:
 
 ```env
 APP_NAME="Service Desk"
 APP_ENV=production
 APP_DEBUG=false
-APP_URL=https://your-production-domain.example
+APP_URL=https://desk.kotov.lt
 LOG_LEVEL=info
 
 DB_CONNECTION=mysql
@@ -44,18 +61,15 @@ SESSION_SECURE_COOKIE=true
 QUEUE_CONNECTION=database
 CACHE_STORE=database
 
-MAIL_MAILER=smtp
-MAIL_HOST=
-MAIL_PORT=
-MAIL_USERNAME=
-MAIL_PASSWORD=
-MAIL_FROM_ADDRESS=
+MAIL_MAILER=resend
+RESEND_API_KEY=
+MAIL_FROM_ADDRESS=noreply@your-domain.example
 MAIL_FROM_NAME="${APP_NAME}"
 
 DEMO_DATA_ENABLED=false
 ```
 
-Generate a unique application key:
+Generate a unique application key for a new deployment:
 
 ```bash
 php artisan key:generate
@@ -75,7 +89,9 @@ GITHUB_INTEGRATION_ENABLED=false
 AI_ENABLED=false
 ```
 
-The core Service Desk workflow must continue to work when external integrations are disabled or unavailable. Secrets must be provided through environment variables and must never be committed to the repository.
+Typical provider configuration is supplied through environment variables only. Provider secrets must never be committed to the repository.
+
+The core Service Desk workflow must continue to work when external integrations are disabled or unavailable.
 
 ## Install PHP Dependencies
 
@@ -83,7 +99,7 @@ The core Service Desk workflow must continue to work when external integrations 
 composer install --no-dev --prefer-dist --no-interaction --optimize-autoloader
 ```
 
-Laravel Tinker is intentionally retained as a runtime dependency. It does not expose an HTTP interface and requires privileged shell access. Production shell and container access must therefore be restricted appropriately.
+Laravel Tinker is intentionally retained as a runtime dependency. It does not expose an HTTP interface and requires privileged shell access, so production shell and container access must be restricted appropriately.
 
 ## Build Frontend Assets
 
@@ -96,11 +112,13 @@ The application requires the generated Vite manifest and frontend assets at runt
 
 ## Database
 
+Run production migrations with:
+
 ```bash
 php artisan migrate --force
 ```
 
-All application migrations have been verified against a fresh database. Do not use `migrate:fresh` on an existing production database.
+All application migrations have been verified against a fresh database. Never use `migrate:fresh` on an existing production database.
 
 ## Demo Data
 
@@ -110,26 +128,30 @@ Demo data is disabled by default:
 DEMO_DATA_ENABLED=false
 ```
 
-For a dedicated public demo deployment, explicitly set:
+For the intentionally disposable public portfolio demo only, temporarily enable demo seeding:
 
 ```env
 DEMO_DATA_ENABLED=true
 ```
 
-Then:
+Then run:
 
 ```bash
 php artisan config:clear
 php artisan db:seed --force
 ```
 
-Known demo credentials must never be seeded into a real production environment. After demo seeding, return `DEMO_DATA_ENABLED` to `false` and rebuild caches:
+After intentional demo initialization, set `DEMO_DATA_ENABLED=false` again and rebuild application caches:
 
 ```bash
 php artisan optimize
 ```
 
+Known demo credentials must never be seeded into a real environment containing real or sensitive data.
+
 ## Application Optimization
+
+Run:
 
 ```bash
 php artisan optimize
@@ -139,7 +161,7 @@ The application has been verified to support cached configuration, routes, event
 
 ## Queue Worker
 
-A persistent production worker must run under Supervisor, systemd, a container process manager, or the hosting platform's worker service.
+A persistent production worker must run under Supervisor, systemd, a container process manager, or the hosting platform's dedicated worker service.
 
 Recommended command:
 
@@ -147,11 +169,15 @@ Recommended command:
 php artisan queue:work --sleep=3 --tries=3 --timeout=60
 ```
 
-The database queue `retry_after` value is greater than the worker timeout. After deployment, restart long-running workers:
+The current public demo uses a dedicated Railway worker service with the database queue connection.
+
+The database queue `retry_after` value must remain greater than the worker timeout. Restart long-running workers after deployments that change application code:
 
 ```bash
 php artisan queue:restart
 ```
+
+Workflow notifications and integration jobs that depend on committed application state are configured to run after database commit where required.
 
 ## Storage and Attachments
 
@@ -168,9 +194,24 @@ storage/
 bootstrap/cache/
 ```
 
-Attachment storage must persist across deployments and container restarts. Downloads pass through authorization-controlled application routes, so `php artisan storage:link` is not required.
+Attachment storage must persist across deployments and container restarts. The current Railway demo mounts persistent storage for the private application storage directory.
 
-If the SD-33 hosting platform uses an ephemeral filesystem, persistent storage must be configured before deployment. Migrating attachments to object storage is outside SD-32.
+Downloads pass through authenticated and authorization-controlled application routes, so `php artisan storage:link` is not required and private attachments are not exposed through the public filesystem.
+
+## Email Delivery
+
+Production email uses the Resend HTTP API rather than SMTP:
+
+```env
+MAIL_MAILER=resend
+RESEND_API_KEY=
+MAIL_FROM_ADDRESS=noreply@your-domain.example
+MAIL_FROM_NAME="${APP_NAME}"
+```
+
+The sender domain must be verified with Resend. API keys and mail credentials must remain outside source control.
+
+Mailtrap Sandbox may still be used for local SMTP testing, but it is not the production transport.
 
 ## Logging and Error Handling
 
@@ -181,24 +222,28 @@ APP_DEBUG=false
 LOG_LEVEL=info
 ```
 
-External integration clients use finite connection and request timeouts. Application-level integration exceptions do not intentionally include API credentials.
+The current deployment writes application logs to the platform-accessible production log stream.
 
-Production logs must be accessible to the operator but must not be publicly accessible through the web server.
+External integration clients use finite connection and request timeouts. Integration exceptions are designed not to expose credentials, and production logs must not intentionally contain passwords, API keys, Bearer tokens, webhook secrets, or other sensitive credentials.
 
 ## HTTPS and Sessions
 
+Production uses:
+
 ```env
-APP_URL=https://your-production-domain.example
+APP_URL=https://desk.kotov.lt
 SESSION_SECURE_COOKIE=true
 ```
 
-Production must use HTTPS. Laravel session cookies are configured as HTTP-only.
+The public demo is HTTPS-only. Laravel session cookies are HTTP-only, and secure-cookie handling is enabled for production.
 
 ## Trusted Proxies
 
-The application does not currently trust arbitrary reverse proxies. Do not configure global proxy trust until the hosting architecture is known.
+The application is deployed behind Railway's proxy infrastructure.
 
-During SD-33, configure trusted proxies for the selected hosting provider and verify HTTPS detection, generated secure URLs, client IP handling, and `X-Forwarded-*` headers.
+Trusted proxy handling is configured in the Laravel bootstrap configuration so forwarded HTTPS information is recognized correctly. This is required for correct secure URL generation and HTTPS detection behind the hosting proxy.
+
+Do not blindly trust arbitrary proxy headers when moving the application to another hosting environment. Re-evaluate proxy configuration for the selected platform.
 
 ## Health Check
 
@@ -208,7 +253,7 @@ Laravel exposes:
 /up
 ```
 
-The production platform may use this endpoint for health checks.
+The production endpoint has been verified and can be used by the hosting platform for health checks.
 
 ## Deployment Verification
 
@@ -224,24 +269,54 @@ Confirm:
 - environment is `production`
 - debug mode is disabled
 - application URL uses HTTPS
-- configuration, routes, events, and views are cached
+- configuration, routes, events, and views are cached where expected
 - database connection is correct
 - queue connection is correct
 - session driver is correct
+- persistent attachment storage is mounted and writable
+- production mail transport is configured through Resend
+- trusted proxy handling matches the hosting platform
 
-Then manually verify login, ticket creation and workflow, comments, attachment upload/download, queued notifications, `/up`, and any deliberately enabled optional integrations.
+Then manually verify:
+
+- registration, email verification, login, logout, and password reset
+- ticket creation and editing
+- assignment, priority, and status workflow
+- requester reassignment notification behavior
+- comments and human-readable audit history
+- attachment upload and authorized download
+- attachment persistence across redeploys
+- queued notifications and queue worker processing
+- `/up`
+- REST API token creation and authenticated ticket access
+- Jira, GitHub, webhook, and AI flows only when deliberately enabled
 
 ## Deployment Order
 
 1. Deploy application source.
-2. Configure production environment variables.
+2. Configure production environment variables and secrets.
 3. Install Composer production dependencies.
 4. Build or deploy frontend assets.
 5. Ensure `storage` and `bootstrap/cache` are writable.
-6. Run database migrations.
-7. Seed demo data only for an explicitly designated demo environment.
-8. Run Laravel optimization.
-9. Start or restart queue workers.
-10. Verify `/up` and application functionality.
+6. Attach persistent private storage before accepting attachment uploads.
+7. Run database migrations.
+8. Seed demo data only for an explicitly designated disposable demo environment.
+9. Disable demo seeding again after initialization.
+10. Run Laravel optimization.
+11. Start or restart queue workers.
+12. Verify `/up`, authentication, ticket workflow, storage, notifications, API access, and deliberately enabled integrations.
 
-SD-33 is responsible for applying this checklist to the selected public hosting environment.
+## Final Portfolio Verification
+
+The final portfolio verification confirmed:
+
+- automated test suite passes;
+- Laravel Pint passes;
+- production Vite build succeeds;
+- GitHub Actions CI succeeds;
+- the public demo is operational at `https://desk.kotov.lt`;
+- production authentication and ticket workflow were manually exercised while preparing the portfolio screenshots;
+- production AI assistance was verified;
+- documentation was audited against the final implementation.
+
+This checklist now reflects the final portfolio deployment rather than a pre-SD-33 hosting plan.

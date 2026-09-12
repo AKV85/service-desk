@@ -8,7 +8,7 @@ This document describes the current domain model, business rules, permissions, r
 
 The Service Desk provides a support ticket workflow for requesters, agents, and administrators.
 
-The application includes ticket management, assignment, comments, change history, attachments, email notifications, demo data, and a REST API.
+The application includes authentication, ticket management, assignment, comments, human-readable audit history, attachments, queued email notifications, demo data, and a REST API.
 
 ---
 
@@ -21,10 +21,15 @@ The application contains three user roles:
 A requester can:
 
 - create support tickets;
+
 - view their own tickets;
+
 - comment on tickets they have access to;
+
 - edit the title and description of their own tickets;
+
 - upload and download attachments on accessible tickets;
+
 - reopen their own resolved tickets.
 
 #### Agent
@@ -32,13 +37,21 @@ A requester can:
 An agent can:
 
 - create support tickets;
+
 - view all tickets;
+
 - comment on tickets;
+
 - edit ticket information;
+
 - upload and download attachments;
+
 - assign and unassign tickets;
+
 - assign tickets to agents;
+
 - change ticket priority;
+
 - change ticket status.
 
 #### Admin
@@ -52,7 +65,9 @@ Each user has exactly one role.
 Supported roles:
 
 - `requester`
+
 - `agent`
+
 - `admin`
 
 ---
@@ -62,20 +77,27 @@ Supported roles:
 Supported ticket statuses:
 
 - `new`
+
 - `in_progress`
+
 - `resolved`
+
 - `closed`
 
 Main workflow:
 
 ```text
+
 NEW -> IN_PROGRESS -> RESOLVED -> CLOSED
+
 ```
 
 A resolved ticket can be reopened:
 
 ```text
+
 RESOLVED -> IN_PROGRESS
+
 ```
 
 A closed ticket is considered final.
@@ -95,14 +117,19 @@ Ticket status transitions are handled by the application workflow layer.
 Supported priorities:
 
 - `low`
+
 - `medium`
+
 - `high`
+
 - `urgent`
 
 The default priority is:
 
 ```text
+
 medium
+
 ```
 
 Statuses, priorities, and user roles are stored as strings in the database and represented by PHP backed enums in the application.
@@ -116,19 +143,29 @@ Statuses, priorities, and user roles are stored as strings in the database and r
 Main fields:
 
 - `id`
+
 - `name`
+
 - `email`
+
 - `password`
+
 - `role`
+
 - `created_at`
+
 - `updated_at`
 
 A user can:
 
 - create multiple tickets;
+
 - be assigned multiple tickets when acting as an agent;
+
 - create multiple comments;
+
 - create multiple ticket history records;
+
 - upload multiple ticket attachments.
 
 ---
@@ -138,15 +175,25 @@ A user can:
 Main fields:
 
 - `id`
+
 - `created_by_id`
+
 - `assigned_to_id`
+
 - `title`
+
 - `description`
+
 - `status`
+
 - `priority`
+
 - `resolved_at`
+
 - `closed_at`
+
 - `created_at`
+
 - `updated_at`
 
 `created_by_id` identifies the user who created the ticket.
@@ -156,7 +203,9 @@ Main fields:
 A ticket can contain multiple:
 
 - comments;
+
 - history records;
+
 - attachments.
 
 ---
@@ -166,10 +215,15 @@ A ticket can contain multiple:
 Main fields:
 
 - `id`
+
 - `ticket_id`
+
 - `user_id`
+
 - `body`
+
 - `created_at`
+
 - `updated_at`
 
 A ticket can contain multiple comments.
@@ -185,20 +239,32 @@ Internal/private agent comments are not currently supported.
 Main fields:
 
 - `id`
+
 - `ticket_id`
+
 - `user_id`
+
 - `action`
+
 - `old_values`
+
 - `new_values`
+
 - `created_at`
 
 `old_values` and `new_values` are stored as JSON.
 
-The history records important ticket workflow changes, including:
+The history records important ticket activity, including:
 
 - status changes;
+
 - priority changes;
-- assignee changes.
+
+- assignee changes;
+
+- comment creation;
+
+- attachment uploads.
 
 ---
 
@@ -207,13 +273,21 @@ The history records important ticket workflow changes, including:
 Main fields:
 
 - `id`
+
 - `ticket_id`
+
 - `user_id`
+
 - `original_name`
+
 - `path`
+
 - `mime_type`
+
 - `size`
+
 - `created_at`
+
 - `updated_at`
 
 A ticket attachment represents a file uploaded to a ticket.
@@ -223,6 +297,7 @@ The attachment stores metadata about the uploaded file while the physical file i
 An attachment belongs to:
 
 - one ticket;
+
 - one user who uploaded it.
 
 A ticket can contain multiple attachments.
@@ -230,16 +305,23 @@ A ticket can contain multiple attachments.
 Supported file types:
 
 - `jpg`
+
 - `jpeg`
+
 - `png`
+
 - `pdf`
+
 - `txt`
+
 - `log`
 
 Maximum file size:
 
 ```text
+
 10 MB
+
 ```
 
 Attachment access follows ticket authorization rules.
@@ -253,60 +335,95 @@ A user must have access to the associated ticket in order to download its attach
 The main relationships are:
 
 - User `1:N` Ticket as creator
+
 - User `1:N` Ticket as assignee
+
 - Ticket `1:N` TicketComment
+
 - User `1:N` TicketComment
+
 - Ticket `1:N` TicketHistory
+
 - User `1:N` TicketHistory
+
 - Ticket `1:N` TicketAttachment
+
 - User `1:N` TicketAttachment
 
 Conceptually:
 
 ```text
+
 User
- ├── creates ────────> Ticket
- ├── assigned to ────> Ticket
- ├── writes ─────────> TicketComment
- ├── performs ───────> TicketHistory
- └── uploads ────────> TicketAttachment
+
+ ├── creates ────────> Ticket
+
+ ├── assigned to ────> Ticket
+
+ ├── writes ─────────> TicketComment
+
+ ├── performs ───────> TicketHistory
+
+ └── uploads ────────> TicketAttachment
 
 Ticket
- ├── has many ───────> TicketComment
- ├── has many ───────> TicketHistory
- └── has many ───────> TicketAttachment
+
+ ├── has many ───────> TicketComment
+
+ ├── has many ───────> TicketHistory
+
+ └── has many ───────> TicketAttachment
+
 ```
 
 ---
 
 ### 7. Permissions
 
-| Action | Requester | Agent | Admin |
-|---|---|---|---|
-| Create ticket | Yes | Yes | Yes |
-| View own tickets | Yes | Yes | Yes |
-| View all tickets | No | Yes | Yes |
-| Comment on accessible ticket | Yes | Yes | Yes |
-| Edit accessible ticket information | Own | Yes | Yes |
-| Upload attachment | Accessible tickets | Yes | Yes |
-| Download attachment | Accessible tickets | Yes | Yes |
-| Assign ticket | No | Yes | Yes |
-| Change priority | No | Yes | Yes |
-| Change status | Limited | Yes | Yes |
+\| Action | Requester | Agent | Admin |
+
+\|---|---|---|---|
+
+\| Create ticket | Yes | Yes | Yes |
+
+\| View own tickets | Yes | Yes | Yes |
+
+\| View all tickets | No | Yes | Yes |
+
+\| Comment on accessible ticket | Yes | Yes | Yes |
+
+\| Edit accessible ticket information | Own | Yes | Yes |
+
+\| Upload attachment | Accessible tickets | Yes | Yes |
+
+\| Download attachment | Accessible tickets | Yes | Yes |
+
+\| Assign ticket | No | Yes | Yes |
+
+\| Change priority | No | Yes | Yes |
+
+\| Change status | Limited | Yes | Yes |
 
 A requester can perform the following status transition on their own resolved ticket:
 
 ```text
+
 RESOLVED -> IN_PROGRESS
+
 ```
 
 Agents and administrators can perform:
 
 ```text
+
 NEW -> IN_PROGRESS
+
 IN_PROGRESS -> RESOLVED
+
 RESOLVED -> IN_PROGRESS
+
 RESOLVED -> CLOSED
+
 ```
 
 Authorization is enforced through Laravel policies and Form Request authorization.
@@ -322,12 +439,19 @@ Input validation is handled through Laravel Form Requests.
 The application validates operations including:
 
 - ticket creation;
+
 - ticket updates;
+
 - status changes;
+
 - priority changes;
+
 - ticket assignment;
+
 - comments;
+
 - attachments;
+
 - ticket filtering.
 
 Validation rules are shared between the web application and REST API where the same operation is performed.
@@ -347,9 +471,13 @@ The main application services are:
 Handles workflow operations including:
 
 - status changes;
+
 - priority changes;
+
 - assignment changes;
+
 - ticket history creation;
+
 - workflow-related notifications.
 
 #### TicketStatusTransitionService
@@ -361,6 +489,7 @@ Defines and validates allowed ticket status transitions.
 Handles notification recipients for ticket events such as:
 
 - comments;
+
 - attachments.
 
 This separation allows the web interface and REST API to reuse the same business logic.
@@ -369,24 +498,39 @@ This separation allows the web interface and REST API to reuse the same business
 
 ### 10. Ticket History
 
-Important workflow changes are recorded in `ticket_histories`.
+Important ticket activity is recorded in `ticket_histories` and displayed newest first.
 
 Recorded actions include:
 
 - `status_changed`
+
 - `priority_changed`
+
 - `assignee_changed`
+
+- comment creation activity;
+
+- attachment upload activity.
 
 History records contain:
 
 - the affected ticket;
+
 - the user who performed the action;
+
 - the action type;
+
 - previous values;
+
 - new values;
+
 - creation timestamp.
 
-This provides an audit trail for the main ticket workflow.
+Workflow values are presented with human-readable status and priority labels. Assignee changes display user names rather than only raw IDs while useful identifiers remain in structured history data. New assignee history entries keep a name snapshot so the audit trail remains understandable if user data changes later. Legacy assignee history that contains only IDs is resolved in a batch query where possible to avoid N+1 lookups.
+
+Comment history records the activity without duplicating the comment body. Attachment history identifies the uploaded file by its original file name.
+
+Workflow mutations and their corresponding history writes are transactionally atomic, so a workflow change is rolled back if the audit history write fails.
 
 ---
 
@@ -410,29 +554,42 @@ Deletion of the physical attachment file from filesystem storage is not currentl
 
 ### 12. Email Notifications
 
-The application sends email notifications for important ticket events.
+The application sends email notifications for important ticket and account events.
 
 Implemented notification types include:
 
 - ticket created;
-- ticket assigned;
+
+- ticket assignment to the assigned agent;
+
+- assignment update to the ticket requester;
+
 - attachment added;
+
 - comment added;
+
 - priority changed;
-- status changed.
+
+- status changed;
+
+- account email verification;
+
+- password reset.
 
 Notifications use Laravel Notifications.
 
-Email delivery is queued using Laravel's database queue.
+Email delivery is queued using Laravel's database queue. Workflow notifications that depend on committed database state are configured to dispatch after the surrounding transaction commits.
 
-The application avoids sending redundant notifications to the user who performed an action where applicable.
+The application avoids redundant notifications where applicable. The user performing an action is not notified when that would be redundant, assigning a ticket to the same agent does not generate a duplicate assignment notification, and unassigning a ticket does not send an assignment notification.
 
-For local development, outgoing email can be tested using Mailtrap Sandbox.
+Production email is delivered through the Resend HTTP API. Mailtrap Sandbox can be used for local SMTP testing.
 
 Queue jobs are processed using:
 
 ```bash
+
 ./vendor/bin/sail artisan queue:work
+
 ```
 
 ---
@@ -441,25 +598,40 @@ Queue jobs are processed using:
 
 The application provides an authenticated REST API for the core ticket workflow.
 
+Web authentication uses Laravel Fortify with session-based authentication. The public demo supports self-registration, email verification, and password reset. REST API authentication uses Laravel Sanctum personal access tokens supplied as Bearer tokens. The API provides token creation and current-token revocation endpoints, and token creation is rate limited.
+
 Available endpoints:
 
 ```text
-GET    /api/tickets
-POST   /api/tickets
-GET    /api/tickets/{ticket}
-PUT    /api/tickets/{ticket}
-PATCH  /api/tickets/{ticket}/status
-PATCH  /api/tickets/{ticket}/priority
-PATCH  /api/tickets/{ticket}/assignee
-POST   /api/tickets/{ticket}/comments
+
+GET    /api/tickets
+
+POST   /api/tickets
+
+GET    /api/tickets/{ticket}
+
+PUT    /api/tickets/{ticket}
+
+PATCH  /api/tickets/{ticket}/status
+
+PATCH  /api/tickets/{ticket}/priority
+
+PATCH  /api/tickets/{ticket}/assignee
+
+POST   /api/tickets/{ticket}/comments
+
 ```
 
 The REST API reuses the same:
 
 - Form Requests;
+
 - authorization policies;
+
 - workflow services;
+
 - domain models;
+
 - business rules
 
 as the web interface.
@@ -475,7 +647,9 @@ The application contains database factories and seeders for local development an
 Demo users are provided for each supported role:
 
 - Requester
+
 - Agent
+
 - Admin
 
 The seed data also creates example ticket-related data so the main workflow can be demonstrated without manually building the initial dataset.
@@ -485,13 +659,17 @@ Demo data is disabled by default.
 To create a fresh demo database, explicitly enable demo seeding in `.env`:
 
 ```env
+
 DEMO_DATA_ENABLED=true
+
 ```
 
 Then run:
 
 ```bash
+
 ./vendor/bin/sail artisan migrate:fresh --seed
+
 ```
 
 Demo data uses known demonstration credentials and must not be enabled in a real production environment.
@@ -505,11 +683,17 @@ The ticket-related schema includes indexes intended to support common applicatio
 Documented indexes include:
 
 - `tickets(created_by_id)`
+
 - `tickets(assigned_to_id)`
+
 - `tickets(status, assigned_to_id)`
+
 - `tickets(created_at)`
+
 - `ticket_comments(ticket_id, created_at)`
+
 - `ticket_histories(ticket_id, created_at)`
+
 - `ticket_attachments(ticket_id, created_at)`
 
 The foreign key columns also receive the indexes required by the database for their constraints.
@@ -525,12 +709,19 @@ Deleting a user must not automatically delete their historical tickets.
 Core deletion behavior:
 
 - `tickets.created_by_id -> ON DELETE RESTRICT`
+
 - `tickets.assigned_to_id -> ON DELETE SET NULL`
+
 - `ticket_comments.ticket_id -> ON DELETE CASCADE`
+
 - `ticket_comments.user_id -> ON DELETE RESTRICT`
+
 - `ticket_histories.ticket_id -> ON DELETE CASCADE`
+
 - `ticket_histories.user_id -> ON DELETE SET NULL`
+
 - `ticket_attachments.ticket_id -> ON DELETE CASCADE`
+
 - `ticket_attachments.user_id -> ON DELETE RESTRICT`
 
 Tickets are not physically deleted through the normal application workflow.
@@ -546,13 +737,21 @@ Deletion of the physical attachment file from filesystem storage is not currentl
 The following features are not currently implemented:
 
 - ticket categories;
+
 - SLA management;
+
 - teams and departments;
+
 - watchers;
+
 - tags;
+
 - internal agent notes;
+
 - custom fields;
+
 - advanced full-text search;
+
 - advanced support queues.
 
 These features can be introduced in future versions if required.
@@ -582,10 +781,15 @@ Sistemoje yra trys naudotojų rolės:
 Naudotojas gali:
 
 - kurti pagalbos užklausas;
+
 - matyti savo užklausas;
+
 - komentuoti užklausas, prie kurių turi prieigą;
+
 - redaguoti savo užklausų pavadinimą ir aprašymą;
+
 - įkelti ir atsisiųsti prieinamų užklausų failus;
+
 - iš naujo atidaryti savo išspręstas užklausas.
 
 #### Agent
@@ -593,13 +797,21 @@ Naudotojas gali:
 Specialistas gali:
 
 - kurti pagalbos užklausas;
+
 - matyti visas užklausas;
+
 - komentuoti užklausas;
+
 - redaguoti užklausų informaciją;
+
 - įkelti ir atsisiųsti failus;
+
 - priskirti užklausas specialistams;
+
 - panaikinti specialisto priskyrimą;
+
 - keisti užklausos prioritetą;
+
 - keisti užklausos būseną.
 
 #### Admin
@@ -613,7 +825,9 @@ Kiekvienas naudotojas turi vieną rolę.
 Galimos rolės:
 
 - `requester`
+
 - `agent`
+
 - `admin`
 
 ---
@@ -623,20 +837,27 @@ Galimos rolės:
 Galimos užklausos būsenos:
 
 - `new`
+
 - `in_progress`
+
 - `resolved`
+
 - `closed`
 
 Pagrindinis procesas:
 
 ```text
+
 NEW -> IN_PROGRESS -> RESOLVED -> CLOSED
+
 ```
 
 Išspręsta užklausa gali būti atidaryta iš naujo:
 
 ```text
+
 RESOLVED -> IN_PROGRESS
+
 ```
 
 Uždaryta užklausa laikoma galutine.
@@ -656,14 +877,19 @@ Būsenų perėjimai valdomi programos workflow sluoksnyje.
 Galimi prioritetai:
 
 - `low`
+
 - `medium`
+
 - `high`
+
 - `urgent`
 
 Numatytasis prioritetas:
 
 ```text
+
 medium
+
 ```
 
 Būsenos, prioritetai ir naudotojų rolės duomenų bazėje saugomos kaip tekstinės reikšmės, o programoje atvaizduojamos naudojant PHP backed enum.
@@ -677,19 +903,29 @@ Būsenos, prioritetai ir naudotojų rolės duomenų bazėje saugomos kaip teksti
 Pagrindiniai laukai:
 
 - `id`
+
 - `name`
+
 - `email`
+
 - `password`
+
 - `role`
+
 - `created_at`
+
 - `updated_at`
 
 Naudotojas gali:
 
 - sukurti daug užklausų;
+
 - būti atsakingas už daug užklausų, kai naudotojas yra specialistas;
+
 - sukurti daug komentarų;
+
 - sukurti daug užklausų istorijos įrašų;
+
 - įkelti daug užklausų failų.
 
 ---
@@ -699,15 +935,25 @@ Naudotojas gali:
 Pagrindiniai laukai:
 
 - `id`
+
 - `created_by_id`
+
 - `assigned_to_id`
+
 - `title`
+
 - `description`
+
 - `status`
+
 - `priority`
+
 - `resolved_at`
+
 - `closed_at`
+
 - `created_at`
+
 - `updated_at`
 
 `created_by_id` nurodo užklausą sukūrusį naudotoją.
@@ -717,7 +963,9 @@ Pagrindiniai laukai:
 Viena užklausa gali turėti daug:
 
 - komentarų;
+
 - istorijos įrašų;
+
 - prisegtų failų.
 
 ---
@@ -727,10 +975,15 @@ Viena užklausa gali turėti daug:
 Pagrindiniai laukai:
 
 - `id`
+
 - `ticket_id`
+
 - `user_id`
+
 - `body`
+
 - `created_at`
+
 - `updated_at`
 
 Viena užklausa gali turėti daug komentarų.
@@ -746,20 +999,32 @@ Vidiniai ir privatūs specialistų komentarai šiuo metu nepalaikomi.
 Pagrindiniai laukai:
 
 - `id`
+
 - `ticket_id`
+
 - `user_id`
+
 - `action`
+
 - `old_values`
+
 - `new_values`
+
 - `created_at`
 
 `old_values` ir `new_values` saugomi JSON formatu.
 
-Istorijoje registruojami svarbūs užklausos pakeitimai:
+Istorijoje registruojama svarbi užklausos veikla:
 
 - būsenos pakeitimai;
+
 - prioriteto pakeitimai;
-- atsakingo specialisto pakeitimai.
+
+- atsakingo specialisto pakeitimai;
+
+- komentaro sukūrimas;
+
+- failo įkėlimas.
 
 ---
 
@@ -768,13 +1033,21 @@ Istorijoje registruojami svarbūs užklausos pakeitimai:
 Pagrindiniai laukai:
 
 - `id`
+
 - `ticket_id`
+
 - `user_id`
+
 - `original_name`
+
 - `path`
+
 - `mime_type`
+
 - `size`
+
 - `created_at`
+
 - `updated_at`
 
 Prisegtas failas yra su konkrečia užklausa susietas naudotojo įkeltas failas.
@@ -784,6 +1057,7 @@ Duomenų bazėje saugoma įkelto failo metainformacija, o fizinis failas valdoma
 Prisegtas failas priklauso:
 
 - vienai užklausai;
+
 - vienam failą įkėlusiam naudotojui.
 
 Viena užklausa gali turėti daug prisegtų failų.
@@ -791,16 +1065,23 @@ Viena užklausa gali turėti daug prisegtų failų.
 Palaikomi failų tipai:
 
 - `jpg`
+
 - `jpeg`
+
 - `png`
+
 - `pdf`
+
 - `txt`
+
 - `log`
 
 Didžiausias failo dydis:
 
 ```text
+
 10 MB
+
 ```
 
 Prieigai prie prisegtų failų taikomos užklausos autorizacijos taisyklės.
@@ -814,60 +1095,95 @@ Naudotojas gali atsisiųsti failą tik tada, kai turi prieigą prie susijusios u
 Pagrindiniai ryšiai:
 
 - User `1:N` Ticket kaip kūrėjas
+
 - User `1:N` Ticket kaip atsakingas specialistas
+
 - Ticket `1:N` TicketComment
+
 - User `1:N` TicketComment
+
 - Ticket `1:N` TicketHistory
+
 - User `1:N` TicketHistory
+
 - Ticket `1:N` TicketAttachment
+
 - User `1:N` TicketAttachment
 
 Konceptualiai:
 
 ```text
+
 User
- ├── sukuria ─────────> Ticket
- ├── priskiriamas ─────> Ticket
- ├── rašo ─────────────> TicketComment
- ├── atlieka ──────────> TicketHistory
- └── įkelia ───────────> TicketAttachment
+
+ ├── sukuria ─────────> Ticket
+
+ ├── priskiriamas ─────> Ticket
+
+ ├── rašo ─────────────> TicketComment
+
+ ├── atlieka ──────────> TicketHistory
+
+ └── įkelia ───────────> TicketAttachment
 
 Ticket
- ├── turi daug ────────> TicketComment
- ├── turi daug ────────> TicketHistory
- └── turi daug ────────> TicketAttachment
+
+ ├── turi daug ────────> TicketComment
+
+ ├── turi daug ────────> TicketHistory
+
+ └── turi daug ────────> TicketAttachment
+
 ```
 
 ---
 
 ### 7. Prieigos teisės
 
-| Veiksmas | Requester | Agent | Admin |
-|---|---|---|---|
-| Sukurti užklausą | Taip | Taip | Taip |
-| Matyti savo užklausas | Taip | Taip | Taip |
-| Matyti visas užklausas | Ne | Taip | Taip |
-| Komentuoti pasiekiamą užklausą | Taip | Taip | Taip |
-| Redaguoti užklausos informaciją | Savo | Taip | Taip |
-| Įkelti failą | Pasiekiamos užklausos | Taip | Taip |
-| Atsisiųsti failą | Pasiekiamos užklausos | Taip | Taip |
-| Priskirti užklausą | Ne | Taip | Taip |
-| Keisti prioritetą | Ne | Taip | Taip |
-| Keisti būseną | Ribotai | Taip | Taip |
+\| Veiksmas | Requester | Agent | Admin |
+
+\|---|---|---|---|
+
+\| Sukurti užklausą | Taip | Taip | Taip |
+
+\| Matyti savo užklausas | Taip | Taip | Taip |
+
+\| Matyti visas užklausas | Ne | Taip | Taip |
+
+\| Komentuoti pasiekiamą užklausą | Taip | Taip | Taip |
+
+\| Redaguoti užklausos informaciją | Savo | Taip | Taip |
+
+\| Įkelti failą | Pasiekiamos užklausos | Taip | Taip |
+
+\| Atsisiųsti failą | Pasiekiamos užklausos | Taip | Taip |
+
+\| Priskirti užklausą | Ne | Taip | Taip |
+
+\| Keisti prioritetą | Ne | Taip | Taip |
+
+\| Keisti būseną | Ribotai | Taip | Taip |
 
 Requester savo išspręstai užklausai gali atlikti šį būsenos pakeitimą:
 
 ```text
+
 RESOLVED -> IN_PROGRESS
+
 ```
 
 Agent ir Admin gali atlikti:
 
 ```text
+
 NEW -> IN_PROGRESS
+
 IN_PROGRESS -> RESOLVED
+
 RESOLVED -> IN_PROGRESS
+
 RESOLVED -> CLOSED
+
 ```
 
 Autorizacija vykdoma naudojant Laravel policies ir Form Request autorizaciją.
@@ -883,12 +1199,19 @@ Web sąsaja ir REST API naudoja tas pačias autorizacijos taisykles.
 Sistema validuoja:
 
 - užklausų kūrimą;
+
 - užklausų redagavimą;
+
 - būsenų pakeitimus;
+
 - prioritetų pakeitimus;
+
 - užklausų priskyrimą;
+
 - komentarus;
+
 - failų įkėlimą;
+
 - užklausų filtravimą.
 
 Kai web sąsajoje ir REST API atliekama ta pati operacija, naudojamos tos pačios validacijos taisyklės.
@@ -908,9 +1231,13 @@ Pagrindiniai servisai:
 Valdo:
 
 - būsenų pakeitimus;
+
 - prioritetų pakeitimus;
+
 - priskyrimo pakeitimus;
+
 - užklausos istorijos kūrimą;
+
 - su workflow susijusius pranešimus.
 
 #### TicketStatusTransitionService
@@ -922,6 +1249,7 @@ Apibrėžia ir tikrina leidžiamus užklausos būsenų perėjimus.
 Valdo pranešimų gavėjus tokiems įvykiams kaip:
 
 - komentarų pridėjimas;
+
 - failų pridėjimas.
 
 Toks atskyrimas leidžia web sąsajai ir REST API naudoti tą pačią verslo logiką.
@@ -930,24 +1258,39 @@ Toks atskyrimas leidžia web sąsajai ir REST API naudoti tą pačią verslo log
 
 ### 10. Užklausos istorija
 
-Svarbūs workflow pakeitimai registruojami `ticket_histories` lentelėje.
+Svarbi užklausos veikla registruojama `ticket_histories` lentelėje ir rodoma nuo naujausio įrašo.
 
 Registruojami veiksmai:
 
 - `status_changed`
+
 - `priority_changed`
+
 - `assignee_changed`
+
+- komentaro sukūrimo veikla;
+
+- failo įkėlimo veikla.
 
 Istorijos įraše saugoma:
 
 - susijusi užklausa;
+
 - veiksmą atlikęs naudotojas;
+
 - veiksmo tipas;
+
 - ankstesnės reikšmės;
+
 - naujos reikšmės;
+
 - sukūrimo laikas.
 
-Tai suteikia pagrindinio užklausos proceso auditavimo istoriją.
+Workflow reikšmės rodomos aiškiais būsenos ir prioriteto pavadinimais. Atsakingo specialisto pakeitimai rodo naudotojų vardus, o naudingi ID išlieka struktūrizuotuose istorijos duomenyse. Nauji priskyrimo istorijos įrašai išsaugo specialisto vardo momentinę kopiją, todėl istorija išlieka suprantama net vėliau pasikeitus naudotojo duomenims. Senesni įrašai, kuriuose yra tik ID, kai įmanoma išsprendžiami viena paketine užklausa, kad būtų išvengta N+1 užklausų.
+
+Komentaro istorijos įrašas nedubliuoja paties komentaro teksto. Failo istorijos įrašas nurodo originalų įkelto failo pavadinimą.
+
+Workflow pakeitimai ir atitinkami istorijos įrašai vykdomi vienoje duomenų bazės transakcijoje, todėl nepavykus išsaugoti audito istorijos pats workflow pakeitimas taip pat atšaukiamas.
 
 ---
 
@@ -971,29 +1314,42 @@ Fizinių prisegtų failų pašalinimas iš failų saugyklos šiuo metu nėra įp
 
 ### 12. El. pašto pranešimai
 
-Sistema siunčia el. pašto pranešimus apie svarbius užklausos įvykius.
+Sistema siunčia el. pašto pranešimus apie svarbius užklausos ir naudotojo paskyros įvykius.
 
 Įgyvendinti pranešimų tipai:
 
 - sukurta užklausa;
-- užklausa priskirta specialistui;
+
+- priskyrimo pranešimas paskirtam specialistui;
+
+- priskyrimo atnaujinimo pranešimas užklausos autoriui;
+
 - pridėtas failas;
+
 - pridėtas komentaras;
+
 - pakeistas prioritetas;
-- pakeista būsena.
+
+- pakeista būsena;
+
+- el. pašto adreso patvirtinimas;
+
+- slaptažodžio atkūrimas.
 
 Pranešimams naudojamas Laravel Notifications mechanizmas.
 
-El. laiškų siuntimas vykdomas asinchroniškai naudojant Laravel database queue.
+El. laiškų siuntimas vykdomas asinchroniškai naudojant Laravel database queue. Workflow pranešimai, priklausantys nuo sėkmingai išsaugotos duomenų bazės būsenos, siunčiami tik po transakcijos patvirtinimo.
 
-Kai tai prasminga, sistema nesiunčia nereikalingo pranešimo tam pačiam naudotojui, kuris atliko veiksmą.
+Sistema vengia perteklinių pranešimų. Veiksmą atlikęs naudotojas negauna nereikalingo pranešimo, pakartotinis tos pačios užklausos priskyrimas tam pačiam specialistui nesukuria dublikato, o nuėmus priskyrimą naujas priskyrimo pranešimas nesiunčiamas.
 
-Lokaliame kūrimo procese el. laiškams tikrinti galima naudoti Mailtrap Sandbox.
+Produkcijoje el. laiškai siunčiami per Resend HTTP API. Lokaliam SMTP testavimui galima naudoti Mailtrap Sandbox.
 
 Queue užduotys vykdomos komanda:
 
 ```bash
+
 ./vendor/bin/sail artisan queue:work
+
 ```
 
 ---
@@ -1002,25 +1358,40 @@ Queue užduotys vykdomos komanda:
 
 Sistema turi autentifikuotą REST API pagrindiniam užklausų valdymo procesui.
 
+Web autentifikacijai naudojamas Laravel Fortify ir sesijomis pagrįstas autentifikavimas. Viešame demonstraciniame diegime palaikoma savarankiška registracija, el. pašto patvirtinimas ir slaptažodžio atkūrimas. REST API autentifikacijai naudojami Laravel Sanctum personal access token'ai, siunčiami kaip Bearer token'ai. API turi token'o sukūrimo ir naudojamo token'o atšaukimo endpoint'us, o token'o kūrimas ribojamas pagal užklausų dažnį.
+
 Galimi endpoint'ai:
 
 ```text
-GET    /api/tickets
-POST   /api/tickets
-GET    /api/tickets/{ticket}
-PUT    /api/tickets/{ticket}
-PATCH  /api/tickets/{ticket}/status
-PATCH  /api/tickets/{ticket}/priority
-PATCH  /api/tickets/{ticket}/assignee
-POST   /api/tickets/{ticket}/comments
+
+GET    /api/tickets
+
+POST   /api/tickets
+
+GET    /api/tickets/{ticket}
+
+PUT    /api/tickets/{ticket}
+
+PATCH  /api/tickets/{ticket}/status
+
+PATCH  /api/tickets/{ticket}/priority
+
+PATCH  /api/tickets/{ticket}/assignee
+
+POST   /api/tickets/{ticket}/comments
+
 ```
 
 REST API naudoja tas pačias:
 
 - Form Requests;
+
 - autorizacijos policies;
+
 - workflow servisus;
+
 - domeno modelius;
+
 - verslo taisykles
 
 kaip ir web sąsaja.
@@ -1036,7 +1407,9 @@ Sistema turi duomenų bazės factories ir seeders lokaliam kūrimui ir demonstra
 Sukuriami demonstraciniai naudotojai kiekvienai palaikomai rolei:
 
 - Requester
+
 - Agent
+
 - Admin
 
 Seeder taip pat sukuria pavyzdinius užklausų duomenis, kad pagrindinį workflow būtų galima demonstruoti be rankinio pradinių duomenų kūrimo.
@@ -1046,13 +1419,17 @@ Pagal numatytuosius nustatymus demonstracinių duomenų kūrimas yra išjungtas.
 Norint sukurti naują demonstracinę duomenų bazę, `.env` faile reikia aiškiai įjungti demonstracinių duomenų kūrimą:
 
 ```env
+
 DEMO_DATA_ENABLED=true
+
 ```
 
 Tada paleisti:
 
 ```bash
+
 ./vendor/bin/sail artisan migrate:fresh --seed
+
 ```
 
 Demonstraciniai duomenys naudoja viešai žinomus demonstracinių paskyrų prisijungimo duomenis, todėl ši funkcija neturi būti įjungta realioje produkcinėje aplinkoje.
@@ -1066,11 +1443,17 @@ Su užklausomis susijusioje duomenų bazės struktūroje naudojami indeksai daž
 Dokumentuoti indeksai:
 
 - `tickets(created_by_id)`
+
 - `tickets(assigned_to_id)`
+
 - `tickets(status, assigned_to_id)`
+
 - `tickets(created_at)`
+
 - `ticket_comments(ticket_id, created_at)`
+
 - `ticket_histories(ticket_id, created_at)`
+
 - `ticket_attachments(ticket_id, created_at)`
 
 Išorinių raktų stulpeliams taip pat naudojami duomenų bazės apribojimams reikalingi indeksai.
@@ -1086,12 +1469,19 @@ Naudotojo pašalinimas neturi automatiškai pašalinti jo istorinių užklausų.
 Pagrindinės šalinimo taisyklės:
 
 - `tickets.created_by_id -> ON DELETE RESTRICT`
+
 - `tickets.assigned_to_id -> ON DELETE SET NULL`
+
 - `ticket_comments.ticket_id -> ON DELETE CASCADE`
+
 - `ticket_comments.user_id -> ON DELETE RESTRICT`
+
 - `ticket_histories.ticket_id -> ON DELETE CASCADE`
+
 - `ticket_histories.user_id -> ON DELETE SET NULL`
+
 - `ticket_attachments.ticket_id -> ON DELETE CASCADE`
+
 - `ticket_attachments.user_id -> ON DELETE RESTRICT`
 
 Įprastame sistemos workflow fizinis užklausų šalinimas nenumatytas.
@@ -1107,13 +1497,21 @@ Fizinių prisegtų failų pašalinimas iš failų saugyklos šiuo metu nėra įp
 Šiuo metu neįgyvendinta:
 
 - užklausų kategorijos;
+
 - SLA valdymas;
+
 - komandos ir padaliniai;
+
 - stebėtojai;
+
 - žymos;
+
 - vidinės specialistų pastabos;
+
 - pasirinktiniai laukai;
+
 - išplėstinė full-text paieška;
+
 - išplėstinės pagalbos užklausų eilės.
 
 Šis funkcionalumas gali būti įgyvendintas būsimose sistemos versijose, jei atsiras poreikis.

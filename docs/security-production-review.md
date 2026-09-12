@@ -8,10 +8,13 @@ The review covers application configuration, authentication, authorization, REST
 
 Findings are classified as:
 
-- **Critical** - must be resolved before deployment.
-- **Important** - must be fixed or explicitly addressed before the public demo is deployed.
-- **Nice to have** - improvements that reduce risk or simplify production configuration but are not deployment blockers.
-- **Reviewed** - areas that were reviewed and where no actionable issue was identified.
+- ****Critical**** - must be resolved before deployment.
+
+- ****Important**** - must be fixed or explicitly addressed before the public demo is deployed.
+
+- ****Nice to have**** - improvements that reduce risk or simplify production configuration but are not deployment blockers.
+
+- ****Reviewed**** - areas that were reviewed and where no actionable issue was identified.
 
 ## Summary
 
@@ -21,23 +24,29 @@ No Critical findings were identified.
 
 ### Important
 
-1. ~~REST API authentication strategy is incomplete.~~ **Resolved in SD-31.**
-2. The PHP requirement declared in `composer.json` does not match the currently locked dependency set.
-3. Public demo accounts use known credentials, including an Admin account.
-4. Production HTTPS, session cookie, logging, mail, and proxy configuration must be explicitly configured for the deployment environment.
+1\. \~\~REST API authentication strategy is incomplete.\~\~ ****Resolved in SD-31.****
+
+2\. The PHP requirement declared in `composer.json` does not match the currently locked dependency set.
+
+3\. Public demo accounts use known credentials, including an Admin account.
+
+4\. Production HTTPS, session cookie, logging, mail, and proxy configuration must be explicitly configured for the deployment environment.
 
 ### Nice to have
 
-1. ~~The private local filesystem disk exposes Laravel signed file-serving routes that are not currently used by the application.~~ **Resolved in SD-31.**
-2. ~~`User.role` is mass assignable even though no exploitable HTTP mass-assignment path was identified.~~ **Resolved in SD-31.**
-3. `laravel/tinker` is installed as a production dependency even though it is not required for normal HTTP application operation.
+1\. \~\~The private local filesystem disk exposes Laravel signed file-serving routes that are not currently used by the application.\~\~ ****Resolved in SD-31.****
+
+2\. \~\~`User.role` is mass assignable even though no exploitable HTTP mass-assignment path was identified.\~\~ ****Resolved in SD-31.****
+
+3\. `laravel/tinker` is installed as a production dependency even though it is not required for normal HTTP application operation.
 
 ---
 
 ## 1. REST API Authentication
 
-**Severity:** Important  
-**Status:** Resolved in SD-31
+****Severity:**** Important  
+
+****Status:**** Resolved in SD-31
 
 ### Original finding
 
@@ -60,13 +69,17 @@ The REST API uses stateless Bearer token authentication.
 Protected API routes now use:
 
 ```php
+
 auth:sanctum
+
 ```
 
 The application provides an API token creation endpoint:
 
 ```text
+
 POST /api/tokens
+
 ```
 
 Clients authenticate using their email address and password. After successful authentication, the endpoint creates a Sanctum personal access token and returns the plain-text token to the client.
@@ -74,13 +87,17 @@ Clients authenticate using their email address and password. After successful au
 The token is then supplied to protected API requests using:
 
 ```text
-Authorization: Bearer <token>
+
+Authorization: Bearer \<token>
+
 ```
 
 The application also provides an authenticated endpoint for revoking the currently used personal access token:
 
 ```text
+
 DELETE /api/tokens/current
+
 ```
 
 After the token is revoked, the same Bearer token can no longer authenticate protected API requests.
@@ -92,7 +109,9 @@ Because the token creation endpoint accepts user credentials and is publicly acc
 The token endpoint is limited to:
 
 ```text
+
 5 attempts per minute
+
 ```
 
 The rate-limit key is derived from the normalized email address and client IP address.
@@ -104,28 +123,37 @@ This provides protection against repeated password attempts against the API auth
 Dedicated API authentication tests verify that:
 
 - valid credentials can create a personal access token,
+
 - invalid credentials do not create a token,
+
 - a Bearer token can authenticate a protected API request,
+
 - a protected API request without authentication returns `401`,
+
 - the current personal access token can be revoked,
+
 - a revoked token can no longer authenticate,
+
 - the token endpoint is rate limited.
 
 Existing API authorization tests also continue to pass after the authentication change.
 
-**Result:** Resolved.
+****Result:**** Resolved.
 
 ---
 
 ## 2. PHP Version and Locked Dependencies
 
-**Severity:** Important  
-**Status:** Confirmed - deployment decision required
+****Severity:**** Important  
+
+****Status:**** Confirmed - deployment decision required
 
 `composer.json` currently declares:
 
 ```json
+
 "php": "^8.3"
+
 ```
 
 Laravel Framework 13.29.0 itself supports PHP `^8.3`.
@@ -144,8 +172,9 @@ The production runtime target must be explicitly selected during deployment prep
 
 Two valid strategies exist:
 
-1. Target PHP 8.3 and resolve dependencies against a PHP 8.3 Composer platform.
-2. Use PHP 8.4.1 or newer and update the project's declared PHP requirement to match the actual supported production runtime.
+1\. Target PHP 8.3 and resolve dependencies against a PHP 8.3 Composer platform.
+
+2\. Use PHP 8.4.1 or newer and update the project's declared PHP requirement to match the actual supported production runtime.
 
 ### Target
 
@@ -155,19 +184,24 @@ SD-32.
 
 ## 3. Public Demo Accounts and Seeder Safety
 
-**Severity:** Important  
-**Status:** Confirmed - public demo strategy required
+****Severity:**** Important  
+
+****Status:**** Confirmed - public demo strategy required
 
 `DatabaseSeeder` creates the following demo users:
 
-- `requester@example.com`
-- `agent@example.com`
-- `admin@example.com`
+- `requester\@example.com`
+
+- `agent\@example.com`
+
+- `admin\@example.com`
 
 All demo accounts use the publicly documented password:
 
 ```text
+
 password
+
 ```
 
 This includes an Admin account with administrative application permissions.
@@ -194,13 +228,16 @@ SD-32 / SD-33.
 
 ## 4. HTTPS, Cookies, Logging, Mail, and Trusted Proxies
 
-**Severity:** Important  
-**Status:** Deployment configuration required
+****Severity:**** Important  
+
+****Status:**** Deployment configuration required
 
 Laravel uses safe framework defaults for production error display:
 
 - `APP_ENV` defaults to `production`.
+
 - `APP_DEBUG` defaults to `false`.
+
 - `APP_KEY` is supplied through the environment.
 
 However, the actual production environment must explicitly configure security-sensitive values.
@@ -210,10 +247,15 @@ However, the actual production environment must explicitly configure security-se
 The public deployment must use:
 
 ```text
+
 APP_ENV=production
+
 APP_DEBUG=false
+
 APP_URL=https://...
+
 SESSION_SECURE_COOKIE=true
+
 ```
 
 A production-appropriate `LOG_LEVEL` must be selected instead of relying on the development-oriented `debug` default.
@@ -232,21 +274,26 @@ SD-32.
 
 ## 5. Private Filesystem Serving
 
-**Severity:** Nice to have  
-**Status:** Resolved in SD-31
+****Severity:**** Nice to have  
+
+****Status:**** Resolved in SD-31
 
 ### Original finding
 
 The default local filesystem disk points to:
 
 ```text
+
 storage/app/private
+
 ```
 
 and had Laravel file serving enabled with:
 
 ```php
+
 'serve' => true,
+
 ```
 
 Laravel therefore registered framework GET and PUT storage routes.
@@ -266,21 +313,24 @@ Ticket attachments are downloaded through the application's own authenticated an
 Because the application does not use Laravel's framework file-serving functionality for the private local disk, the following configuration was removed:
 
 ```php
+
 'serve' => true,
+
 ```
 
 The unnecessary framework storage routes are therefore no longer registered.
 
 Attachment functionality was verified after the configuration change and continues to operate through the application's authorized attachment workflow.
 
-**Result:** Resolved as a defense-in-depth improvement.
+****Result:**** Resolved as a defense-in-depth improvement.
 
 ---
 
 ## 6. User Role Mass Assignment
 
-**Severity:** Nice to have  
-**Status:** Resolved in SD-31
+****Severity:**** Nice to have  
+
+****Status:**** Resolved in SD-31
 
 ### Original finding
 
@@ -302,14 +352,15 @@ The model now allows general mass assignment only for the non-role user attribut
 
 Existing API and application tests continue to pass after this change.
 
-**Result:** Resolved.
+****Result:**** Resolved.
 
 ---
 
 ## 7. Laravel Tinker
 
-**Severity:** Nice to have  
-**Status:** Reviewed
+****Severity:**** Nice to have  
+
+****Status:**** Reviewed
 
 `laravel/tinker` is currently listed under production Composer dependencies.
 
@@ -331,7 +382,7 @@ SD-32.
 
 ## 8. Authentication and Login Protection
 
-**Status:** Reviewed - no issue identified
+****Status:**** Reviewed - no issue identified
 
 Laravel Fortify is used for web authentication.
 
@@ -351,18 +402,24 @@ No actionable authentication issue remains within the SD-31 scope.
 
 ## 9. Authorization
 
-**Status:** Reviewed - no issue identified
+****Status:**** Reviewed - no issue identified
 
 Ticket access is controlled through application policies and Form Request authorization.
 
 The review confirmed role-based restrictions for:
 
 - viewing tickets,
+
 - updating tickets,
+
 - assigning tickets,
+
 - changing priority,
+
 - changing status,
+
 - adding comments,
+
 - deleting tickets.
 
 Requesters are restricted to appropriate operations on their own tickets.
@@ -381,7 +438,7 @@ No authorization bypass was identified.
 
 ## 10. CSRF and Session Security
 
-**Status:** Reviewed / deployment configuration required
+****Status:**** Reviewed / deployment configuration required
 
 Web routes use Laravel's standard `web` middleware group and therefore receive Laravel CSRF protection.
 
@@ -399,7 +456,7 @@ No application-specific CSRF bypass was identified.
 
 ## 11. File Upload and Attachment Security
 
-**Status:** Reviewed - no Critical issue identified
+****Status:**** Reviewed - no Critical issue identified
 
 Ticket attachments are stored on the private local filesystem disk rather than the public disk.
 
@@ -423,7 +480,7 @@ No Critical file-access issue was identified.
 
 ## 12. CORS
 
-**Status:** Reviewed - no action required
+****Status:**** Reviewed - no action required
 
 No custom `config/cors.php` configuration is currently present.
 
@@ -437,7 +494,7 @@ CORS should remain restrictive unless a concrete cross-origin browser client is 
 
 ## 13. Queue and Mail Configuration
 
-**Status:** Reviewed / deployment configuration required
+****Status:**** Reviewed / deployment configuration required
 
 The application uses the database queue driver.
 
@@ -457,7 +514,7 @@ SD-32.
 
 ## 14. Logging and Error Exposure
 
-**Status:** Reviewed / deployment configuration required
+****Status:**** Reviewed / deployment configuration required
 
 Laravel production debug mode defaults to disabled.
 
@@ -472,7 +529,9 @@ Laravel's default log channels use `LOG_LEVEL` from the environment, with `debug
 Production deployment must explicitly select an appropriate log level and keep:
 
 ```text
+
 APP_DEBUG=false
+
 ```
 
 ### Target
@@ -483,7 +542,7 @@ SD-32.
 
 ## 15. Secrets and Repository History
 
-**Status:** Reviewed - no issue identified
+****Status:**** Reviewed - no issue identified
 
 The repository ignores local environment files and common sensitive files.
 
@@ -498,8 +557,11 @@ No committed `.env`, production environment file, private key, or credential fil
 Credential-like values found in tracked files were placeholders such as:
 
 ```text
+
 MAIL_PASSWORD=null
+
 MAIL_PASSWORD=your_mailtrap_password
+
 ```
 
 No repository secret exposure was identified.
@@ -508,7 +570,7 @@ No repository secret exposure was identified.
 
 ## 16. Public Files and Storage
 
-**Status:** Reviewed - no issue identified
+****Status:**** Reviewed - no issue identified
 
 The public directory contains only expected application assets and entry-point files.
 
@@ -524,16 +586,22 @@ No unintended publicly accessible application data was identified.
 
 ## 17. Production Optimization
 
-**Status:** Reviewed / SD-32
+****Status:**** Reviewed / SD-32
 
 Laravel provides the expected production optimization commands, including:
 
 ```text
+
 optimize
+
 config:cache
+
 event:cache
+
 route:cache
+
 view:cache
+
 ```
 
 Production deployment should install Composer dependencies without development packages and execute the appropriate Laravel optimization commands.
@@ -546,20 +614,33 @@ The exact production deployment procedure will be documented as part of SD-32.
 
 The following changes were completed as part of the security review:
 
-1. Laravel Sanctum was installed and configured.
-2. The `User` model was configured with Sanctum API token support.
-3. The Sanctum personal access token database migration was added.
-4. Protected REST API routes were changed to `auth:sanctum`.
-5. A token creation endpoint was added for API clients.
-6. A current-token revocation endpoint was added.
-7. API token creation was protected by a five-attempts-per-minute rate limiter keyed by normalized email address and client IP.
-8. Dedicated tests were added for the real Bearer-token authentication flow.
-9. Existing REST API authorization tests were verified after the authentication change.
-10. `role` was removed from the `User` model's general mass-assignable attributes.
-11. Unused Laravel private filesystem serving was disabled.
-12. Attachment behavior was verified after disabling framework file serving.
-13. Laravel Pint was executed successfully.
-14. The complete automated test suite was executed successfully.
+1\. Laravel Sanctum was installed and configured.
+
+2\. The `User` model was configured with Sanctum API token support.
+
+3\. The Sanctum personal access token database migration was added.
+
+4\. Protected REST API routes were changed to `auth:sanctum`.
+
+5\. A token creation endpoint was added for API clients.
+
+6\. A current-token revocation endpoint was added.
+
+7\. API token creation was protected by a five-attempts-per-minute rate limiter keyed by normalized email address and client IP.
+
+8\. Dedicated tests were added for the real Bearer-token authentication flow.
+
+9\. Existing REST API authorization tests were verified after the authentication change.
+
+10\. `role` was removed from the `User` model's general mass-assignable attributes.
+
+11\. Unused Laravel private filesystem serving was disabled.
+
+12\. Attachment behavior was verified after disabling framework file serving.
+
+13\. Laravel Pint was executed successfully.
+
+14\. The complete automated test suite was executed successfully.
 
 ---
 
@@ -570,17 +651,29 @@ The following changes were completed as part of the security review:
 Production deployment preparation must address:
 
 - production PHP version and Composer dependency compatibility,
+
 - `APP_ENV`,
+
 - `APP_DEBUG`,
+
 - HTTPS `APP_URL`,
+
 - secure session cookies,
+
 - trusted proxy configuration,
+
 - production logging,
+
 - production mail configuration,
+
 - queue worker configuration,
+
 - production Composer installation,
+
 - Laravel production optimization,
+
 - controlled demo seeding,
+
 - production decision regarding Laravel Tinker.
 
 ### SD-33
@@ -588,10 +681,48 @@ Production deployment preparation must address:
 Public demo deployment must address:
 
 - safe use of publicly documented demo accounts,
+
 - disposable demo data,
+
 - Admin demo access,
+
 - demo data restoration/reset strategy,
+
 - verification that no real or sensitive data is present.
+
+---
+
+## Post-Review Production Follow-up
+
+This section records the final state reached after the SD-31 review. The original findings above are intentionally preserved as a historical record of what was true during SD-31.
+
+The deployment-specific follow-up assigned to SD-32 and SD-33 has since been completed:
+
+- the declared PHP runtime requirement was aligned with the locked dependency set and production now targets PHP 8.4.1 or newer;
+
+- the application was deployed as a public HTTPS demo at `https://desk.kotov.lt`;
+
+- `APP_ENV=production`, `APP_DEBUG=false`, HTTPS application URLs, secure session cookies, and production logging were configured;
+
+- trusted proxy handling was configured for the Railway deployment so forwarded HTTPS information is handled correctly;
+
+- the application uses a MySQL production database and a dedicated database-backed queue worker;
+
+- private ticket attachments use persistent storage and remain accessible only through authorization-controlled application routes;
+
+- production transactional email is delivered through the Resend HTTP API;
+
+- demo seeding is explicitly controlled through `DEMO_DATA_ENABLED` and is disabled again after intentional demo initialization;
+
+- the public demo was verified with no real or sensitive data required for demonstration;
+
+- web authentication was later expanded to support self-registration, email verification, and password reset while preserving Laravel Fortify session authentication;
+
+- REST API authentication continues to use Laravel Sanctum Bearer tokens with token creation, revocation, and rate limiting;
+
+- production health checks, migrations, queue processing, attachment persistence, authentication flows, notifications, and deliberately enabled integrations were verified during deployment and final portfolio verification.
+
+These later changes resolve the deployment-specific follow-up identified by SD-31 without rewriting the original SD-31 review history.
 
 ---
 
@@ -599,13 +730,19 @@ Public demo deployment must address:
 
 At the completion of SD-31:
 
-- **Critical findings:** 0
-- **Important findings originally identified:** 4
-- **Important findings resolved in SD-31:** 1
-- **Important findings assigned to deployment follow-up:** 3
-- **Nice-to-have findings originally identified:** 3
-- **Nice-to-have findings resolved in SD-31:** 2
-- **Nice-to-have findings assigned to deployment follow-up:** 1
+- ****Critical findings:**** 0
+
+- ****Important findings originally identified:**** 4
+
+- ****Important findings resolved in SD-31:**** 1
+
+- ****Important findings assigned to deployment follow-up:**** 3
+
+- ****Nice-to-have findings originally identified:**** 3
+
+- ****Nice-to-have findings resolved in SD-31:**** 2
+
+- ****Nice-to-have findings assigned to deployment follow-up:**** 1
 
 No unresolved Critical security findings remain.
 
@@ -616,15 +753,21 @@ The remaining Important findings are deployment-specific and are explicitly assi
 Final automated verification:
 
 ```text
+
 Tests: 177 passed (467 assertions)
+
 ```
 
 Laravel Pint verification:
 
 ```text
+
 93 files checked
+
 3 style issues fixed
+
 PASS
+
 ```
 
 SD-31 therefore completes the application-level security and production configuration review. Remaining production-environment decisions are tracked as deployment preparation work rather than unresolved application security defects.
