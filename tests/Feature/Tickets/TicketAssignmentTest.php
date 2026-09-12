@@ -6,6 +6,7 @@ use App\Enums\UserRole;
 use App\Models\Ticket;
 use App\Models\User;
 use App\Notifications\TicketAssignedNotification;
+use App\Notifications\TicketAssigneeChangedNotification;
 use Illuminate\Foundation\Testing\RefreshDatabase;
 use Illuminate\Support\Facades\Notification;
 use Tests\TestCase;
@@ -54,7 +55,9 @@ class TicketAssignmentTest extends TestCase
             'role' => UserRole::Agent,
         ]);
 
-        $requester = User::factory()->create();
+        $requester = User::factory()->create([
+            'role' => UserRole::Requester,
+        ]);
 
         $ticket = Ticket::create([
             'created_by_id' => $requester->id,
@@ -85,6 +88,20 @@ class TicketAssignmentTest extends TestCase
             TicketAssignedNotification::class,
             function (TicketAssignedNotification $notification) use ($ticket) {
                 return $notification->toArray($ticket->assignee)['ticket_id'] === $ticket->id;
+            }
+        );
+
+        Notification::assertSentTo(
+            $requester,
+            TicketAssigneeChangedNotification::class,
+            function (
+                TicketAssigneeChangedNotification $notification
+            ) use ($ticket, $targetAgent, $requester) {
+                $data = $notification->toArray($requester);
+
+                return $data['ticket_id'] === $ticket->id
+                    && $data['assignee_id'] === $targetAgent->id
+                    && $data['assignee_name'] === $targetAgent->name;
             }
         );
     }
